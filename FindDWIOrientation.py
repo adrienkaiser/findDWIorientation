@@ -28,10 +28,10 @@ if not os.path.isdir(OutputFolder):
 ############################################
 #       Define and check tools             #
 ############################################
-def CheckTool(TestCmd):
+def CheckTool(Tool):
   ExceptionCaught=0
   try:
-    ExitCode = subprocess.call( TestCmd , stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) # call command with no output
+    ExitCode = subprocess.call( Tool + ['--help'], stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) # call command with no output
   except:
     ExceptionCaught=1
   if ExceptionCaught or ExitCode!=0 :
@@ -40,36 +40,41 @@ def CheckTool(TestCmd):
     sys.exit(1)
 
 dtiestimCmd=['/tools/bin_linux64/dtiestim']
-CheckTool(dtiestimCmd + ['--help'])
+CheckTool(dtiestimCmd)
 dtiprocessCmd=['/tools/bin_linux64/dtiprocess']
-CheckTool(dtiprocessCmd + ['--help'])
-ImageMathCmd=['/tools/bin_linux64/ImageMath']
-CheckTool(ImageMathCmd + ['-help'])
+CheckTool(dtiprocessCmd)
+OtsuThresholdCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/OtsuThresholdSegmentation']
+CheckTool(OtsuThresholdCmd)
 tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/TractographyLabelMapSeeding']
-CheckTool(tractoCmd + ['--help'])
+CheckTool(tractoCmd)
 fiberstatsCmd=['/tools/bin_linux64/fiberstats']
-CheckTool(fiberstatsCmd + ['--help'])
+CheckTool(fiberstatsCmd)
 
 ############################################
 # Compute avg fib len for all possible MFs #
 ############################################
 
-## Function to execute an external command + test exit code
+## Function to execute an external command with NO output+ test exit code
 def ExecuteCommand (Command):
   print '> Running:',Command
-  if subprocess.call( Command ) !=0 :
+  if subprocess.call( Command, stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) !=0 :
     print '> Error executing command'
     print '> ABORT'
     sys.exit(1)
 
 ## Write Measurement Frames in a table
 MFTable=[]
-for XYZ in [ (X,Y,Z) for X in [1,-1] for Y in [1,-1] for Z in [1,-1] ] : # 2 x 2 x 2 = 8 possiblities
-  MF='(' + str(XYZ[0]) + ',0,0) (0,' + str(XYZ[1]) + ',0) (0,0,' + str(XYZ[2]) + ')'
-  MFTable.append(MF)
+triples=['(X,0,0)','(0,X,0)','(0,0,X)']
+doubles=[1,-1]
+for XYZ in [ (X,Y,Z) for X in doubles for Y in doubles for Z in doubles ]: 
+  for XYZtriple in [ (Xtriple,Ytriple,Ztriple) for Xtriple in triples for Ytriple in triples for Ztriple in triples ] :
+    if XYZtriple[1] != XYZtriple[0] and XYZtriple[2] != XYZtriple[1] and XYZtriple[2] != XYZtriple[0]: # then OK
+      MF = XYZtriple[0].replace('X',str(XYZ[0])) + ' ' + XYZtriple[1].replace('X',str(XYZ[1])) + ' ' + XYZtriple[2].replace('X',str(XYZ[2]))
+      MFTable.append(MF)
 
 ## Compute Avg Fiber Length for all possible MFs
 AvgFibLenTupleTable=[] # each element of the table is [MF,AvgFibLen]
+print '> Testing',len(MFTable),'measurement frames...'
 for MF in MFTable:
   MFindex=len(AvgFibLenTupleTable) + 1 # because values appended: size = index
   # Display Measurement Frame
@@ -106,7 +111,10 @@ for MF in MFTable:
     ExecuteCommand(ComputeFACmdTable)
 
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
-  mask = OutputFolder + '/mask.nrrd'
+  Mask = OutputFolder + '/mask.nrrd'
+  ComputeMaskCmdTable = OtsuThresholdCmd + [FA, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
+  if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(ComputeMaskCmdTable)
 
   # Compute Tractography
   tracts = OutputFolder + '/MF' + str(MFindex) + '_tracts.vtk'
