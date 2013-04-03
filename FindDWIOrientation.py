@@ -3,11 +3,27 @@
 import os # .access .path .rename .remove .mkdir
 import sys # .exit
 import subprocess # .call
-import random
+import time # .time()
+import shutil # .copyfile()
 
 ############################################
 #             Define variables             #
 ############################################
+def CheckFolder (folder):
+  if os.path.isdir(folder):
+    if not os.access(folder, os.W_OK):
+      print '> The given output folder is not writable:',folder
+      print '> ABORT'
+      sys.exit(1)
+  else:
+    print '> The given output folder does not exist, it will be created:',folder
+    print os.path.dirname(folder)
+    if not os.access(os.path.dirname(folder), os.W_OK):
+      print '> The parent of the given output folder is not writable:',os.path.dirname(folder)
+      print '> ABORT'
+      sys.exit(1)
+    os.mkdir(folder)
+
 DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
 if not os.access(DWI, os.R_OK):
   print '> The given DWI is not readable:',DWI
@@ -15,15 +31,10 @@ if not os.access(DWI, os.R_OK):
   sys.exit(1)
 
 OutputFolder='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI'
-if not os.access(OutputFolder, os.W_OK):
-  print '> The given output folder is not writable:',OutputFolder
-  print '> ABORT'
-  sys.exit(1)
+CheckFolder(OutputFolder)
 
-OutputFolder = OutputFolder + '/findDWIorientation'
-if not os.path.isdir(OutputFolder):
-  print '> Making output directory:',OutputFolder
-  os.mkdir(OutputFolder)
+TempFolder='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/findDWIorientation'
+CheckFolder(TempFolder)
 
 ############################################
 #       Define and check tools             #
@@ -66,13 +77,14 @@ def ExecuteCommand (Command):
 MFTable=[]
 triples=['(X,0,0)','(0,X,0)','(0,0,X)']
 doubles=[1,-1]
-for XYZ in [ (X,Y,Z) for X in doubles for Y in doubles for Z in doubles ]: 
+for XYZ in [ (X,Y,Z) for X in [1] for Y in doubles for Z in doubles ]: # X is only '1': remove doubles: opposed matrices (multiplied by -1)
   for XYZtriple in [ (Xtriple,Ytriple,Ztriple) for Xtriple in triples for Ytriple in triples for Ztriple in triples ] :
     if XYZtriple[1] != XYZtriple[0] and XYZtriple[2] != XYZtriple[1] and XYZtriple[2] != XYZtriple[0]: # then OK
       MF = XYZtriple[0].replace('X',str(XYZ[0])) + ' ' + XYZtriple[1].replace('X',str(XYZ[1])) + ' ' + XYZtriple[2].replace('X',str(XYZ[2]))
       MFTable.append(MF)
 
 ## Compute Avg Fiber Length for all possible MFs
+time1=time.time()
 AvgFibLenTupleTable=[] # each element of the table is [MF,AvgFibLen]
 print '> Testing',len(MFTable),'measurement frames...'
 for MF in MFTable:
@@ -81,7 +93,7 @@ for MF in MFTable:
   print '> Testing MF', MFindex, ':', MF
 
   # Update DWI header
-  MFDWI = OutputFolder + '/MF' + str(MFindex) + '_dwi.nhdr'
+  MFDWI = TempFolder + '/MF' + str(MFindex) + '_dwi.nhdr'
   if not os.path.isfile(MFDWI): # NO auto overwrite => if willing to overwrite, rm files
     MFDWIfile = open(MFDWI,'w')
     for line in open(DWI): # read all lines and replace line containing 'measurement frame' by the new MF
@@ -99,31 +111,31 @@ for MF in MFTable:
     MFDWIfile.close()
 
   # Compute DTI
-  DTI = OutputFolder + '/MF' + str(MFindex) + '_dti.nrrd'
+  DTI = TempFolder + '/MF' + str(MFindex) + '_dti.nrrd'
   ComputeDTICmdTable = dtiestimCmd + ['--dwi_image', MFDWI, '--tensor_output', DTI, '-m', 'wls']
   if not os.path.isfile(DTI): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeDTICmdTable)
 
   # Compute FA # !! Fa needs to be computed only once because same for all MFs
-  FA = OutputFolder + '/fa.nrrd'
+  FA = TempFolder + '/fa.nrrd'
   ComputeFACmdTable = dtiprocessCmd + ['--dti_image', DTI, '-f', FA]
   if not os.path.isfile(FA): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeFACmdTable)
 
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
-  Mask = OutputFolder + '/mask.nrrd'
+  Mask = TempFolder + '/mask.nrrd'
   ComputeMaskCmdTable = OtsuThresholdCmd + [FA, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
   if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeMaskCmdTable)
 
   # Compute Tractography
-  Tracts = OutputFolder + '/MF' + str(MFindex) + '_tracts.vtk'
+  Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
   ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask]
   if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeTractsCmdTable)
 
   # Compute Average Fiber Length
-  FiberStatsOutputFile = OutputFolder + '/MF' + str(MFindex) + '_fiberstats.txt'
+  FiberStatsOutputFile = TempFolder + '/MF' + str(MFindex) + '_fiberstats.txt'
   ComputeAvgFibLenCmdTable = fiberstatsCmd + ['--fiber_file', Tracts]
   if not os.path.isfile(FiberStatsOutputFile): # NO auto overwrite => if willing to overwrite, rm files
     print '> Running:',ComputeAvgFibLenCmdTable
@@ -149,6 +161,26 @@ for AvgFibLenTuple in AvgFibLenTupleTable:
 
 ## Keep max Average Fiber Length in table (= 1st value because sorted)
 print '> The measurement frame MF', MFTable.index(AvgFibLenTupleTable[0][0])+1, ':', AvgFibLenTupleTable[0][0], '(AvgFibLen=' + str(AvgFibLenTupleTable[0][1]) + ') will be used.'
+
+############################################
+#    Write final images to output folder   #
+############################################
+# Copy corrected DWI header and DTI to output folder
+CorrectedDWI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nhdr' # os.path.split() gives the name of the file without path
+shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dwi.nhdr', CorrectedDWI)
+CorrectedDTI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected_dti.nrrd' # os.path.split() gives the name of the file without path
+shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dti.nrrd', CorrectedDTI)
+
+
+## Display execution time
+time2=time.time()
+timeTot=time2-time1
+if timeTot<60 :
+  print '> Execution time =', str(int(timeTot)), 's'
+elif timeTot<3600 :
+  print '> Execution time =', str(int(timeTot)), 's =', str(int(timeTot/60)), 'm', str( int(timeTot) - (int(timeTot/60)*60) ), 's'
+else :
+  print '> Execution time =', str(int(timeTot)), 's =', str(int(timeTot/3600)), 'h', str( int( (int(timeTot) - int(timeTot/3600)*3600) /60) ), 'm', str( int(timeTot) - (int(timeTot/60)*60) ), 's'
 
 ## Exit OK
 sys.exit(0)
