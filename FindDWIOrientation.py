@@ -47,7 +47,7 @@ OtsuThresholdCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch'
 CheckTool(OtsuThresholdCmd)
 tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/TractographyLabelMapSeeding']
 CheckTool(tractoCmd)
-fiberstatsCmd=['/tools/bin_linux64/fiberstats']
+fiberstatsCmd=['/NIRAL/work/akaiser/Projects/dtiprocess-build/bin/fiberstats']
 CheckTool(fiberstatsCmd)
 
 ############################################
@@ -83,7 +83,7 @@ for MF in MFTable:
   # Update DWI header
   MFDWI = OutputFolder + '/MF' + str(MFindex) + '_dwi.nhdr'
   if not os.path.isfile(MFDWI): # NO auto overwrite => if willing to overwrite, rm files
-    MFDWIfile = open(MFDWI,'a') # open for Append
+    MFDWIfile = open(MFDWI,'w')
     for line in open(DWI): # read all lines and replace line containing 'measurement frame' by the new MF
       if 'measurement frame' in line :
         MFDWIfile.write('measurement frame: ' + MF + '\n')
@@ -117,11 +117,25 @@ for MF in MFTable:
     ExecuteCommand(ComputeMaskCmdTable)
 
   # Compute Tractography
-  tracts = OutputFolder + '/MF' + str(MFindex) + '_tracts.vtk'
+  Tracts = OutputFolder + '/MF' + str(MFindex) + '_tracts.vtk'
+  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask]
+  if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(ComputeTractsCmdTable)
 
   # Compute Average Fiber Length
-  AvgFibLen=random.randint(1,100)
-  AvgFibLenTupleTable.append( [MF,AvgFibLen] )
+  FiberStatsOutputFile = OutputFolder + '/MF' + str(MFindex) + '_fiberstats.txt'
+  ComputeAvgFibLenCmdTable = fiberstatsCmd + ['--fiber_file', Tracts]
+  if not os.path.isfile(FiberStatsOutputFile): # NO auto overwrite => if willing to overwrite, rm files
+    print '> Running:',ComputeAvgFibLenCmdTable
+    if subprocess.call( ComputeAvgFibLenCmdTable, stdout=open(FiberStatsOutputFile, 'w') , stderr=open(os.devnull, 'w') ) !=0 :
+      print '> Error executing command'
+      print '> ABORT'
+      sys.exit(1)
+
+  # Read file to get value
+  for line in open(FiberStatsOutputFile):
+    if 'Average Fiber Length' in line :
+      AvgFibLenTupleTable.append( [MF,float( line.split(': ')[1] ) ] )
 
 ############################################
 #   Find max MF: max average fiber length  #
