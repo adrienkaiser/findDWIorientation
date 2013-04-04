@@ -7,11 +7,13 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 ####For each possible measurement frame:
 
 1. Create DWI header (python)
-2. Compute DTI from DWI (dtiestim)
-3. Compute FA from DTI (dtiprocess)
-4. Compute FA mask from FA (OtsuThresholdSegmentation)
-5. Compute Full Brain Tractography from DTI + FA mask (TractographyLabelMapSeeding)
-6. Compute average fiber length from Full Brain Tractography (fiberstats)
+2. Compute DTI and iDWI from DWI (dtiestim)
+3. Compute Brain mask from iDWI (MaskComputationWithThresholding)
+4. Compute FA from DTI (dtiprocess)
+5. Apply Brain mask to FA (ImageMath)
+6. Compute WM mask from masked FA (OtsuThresholdSegmentation)
+7. Compute Full Brain Tractography from DTI + WM mask (TractographyLabelMapSeeding)
+8. Compute average fiber length from Full Brain Tractography (fiberstats)
 
 =&gt; The measurement frame that will have given the longest average fiber length is the right one!
 
@@ -20,8 +22,10 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 $ python FindDWIOrientation.py  
 &gt; Testing 24 measurement frames...  
 &gt; Testing MF 1 : (1,0,0) (0,1,0) (0,0,1)  
-&gt; Running: ['dtiestim', '--dwi_image', 'MF1_dwi.nhdr', '--tensor_output', '/MF1_dti.nrrd', '-m', 'wls']  
+&gt; Running: ['dtiestim', '--dwi_image', 'MF1_dwi.nhdr', '--tensor_output', 'MF1_dti.nrrd', '--idwi', 'MF1_idwi.nrrd', '-m', 'wls']  
+&gt; Running: ['MaskComputationWithThresholding', 'MF1_idwi.nrrd', '--output', 'brainmask.nrrd', '--autoThreshold', '-e', '0']  
 &gt; Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '-f', 'fa.nrrd']  
+&gt; Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd']  
 &gt; Running: ['Slicer', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
 &gt; Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
 &gt; Running: ['fiberstats', '--fiber_file', 'MF1_tracts.vtk']  

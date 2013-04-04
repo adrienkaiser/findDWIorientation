@@ -17,32 +17,35 @@ def CheckFolder (folder):
       sys.exit(1)
   else:
     print '> The given output folder does not exist, it will be created:',folder
-    print os.path.dirname(folder)
     if not os.access(os.path.dirname(folder), os.W_OK):
       print '> The parent of the given output folder is not writable:',os.path.dirname(folder)
       print '> ABORT'
       sys.exit(1)
     os.mkdir(folder)
 
-DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
+#DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
+#DWI='/rodent/SherylMoy/processing/dwi.nhdr'
+DWI='/rodent/FAS_sulik/DTI2013/Processing/N50320/1-Converted/N50320_dwi.nhdr'
+#DWI='/rodent/FAS_sulik/DTI08/PN45ChallengeGrant/4K-02/4K-02_dwi.nhdr'
+#DWI='/home/akaiser/Networking/from_Utah/Data/b1000.nhdr'
 if not os.access(DWI, os.R_OK):
   print '> The given DWI is not readable:',DWI
   print '> ABORT'
   sys.exit(1)
 
-OutputFolder='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI'
+OutputFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
 CheckFolder(OutputFolder)
 
-TempFolder='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/findDWIorientation'
+TempFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
 CheckFolder(TempFolder)
 
 ############################################
 #       Define and check tools             #
 ############################################
-def CheckTool(Tool):
+def CheckTool(TestCmd):
   ExceptionCaught=0
   try:
-    ExitCode = subprocess.call( Tool + ['--help'], stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) # call command with no output
+    ExitCode = subprocess.call( TestCmd, stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) # call command with no output
   except:
     ExceptionCaught=1
   if ExceptionCaught or ExitCode!=0 :
@@ -51,15 +54,19 @@ def CheckTool(Tool):
     sys.exit(1)
 
 dtiestimCmd=['/tools/bin_linux64/dtiestim']
-CheckTool(dtiestimCmd)
+CheckTool(dtiestimCmd + ['--help'])
+BrainMaskCmd=['/home/akaiser/MaskComputationWithThresholding-build/MaskComputationWithThresholding'] # ['/rodent/bin_linux64/toolsMarch2013/MaskComputationWithThresholding']
+CheckTool(BrainMaskCmd + ['--help'])
 dtiprocessCmd=['/tools/bin_linux64/dtiprocess']
-CheckTool(dtiprocessCmd)
+CheckTool(dtiprocessCmd + ['--help'])
+ImageMathCmd=['/tools/bin_linux64/ImageMath']
+CheckTool(ImageMathCmd + ['-help'])
 OtsuThresholdCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/OtsuThresholdSegmentation']
-CheckTool(OtsuThresholdCmd)
+CheckTool(OtsuThresholdCmd + ['--help'])
 tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/TractographyLabelMapSeeding']
-CheckTool(tractoCmd)
+CheckTool(tractoCmd + ['--help'])
 fiberstatsCmd=['/NIRAL/work/akaiser/Projects/dtiprocess-build/bin/fiberstats']
-CheckTool(fiberstatsCmd)
+CheckTool(fiberstatsCmd + ['--help'])
 
 ############################################
 # Compute avg fib len for all possible MFs #
@@ -110,11 +117,18 @@ for MF in MFTable:
         MFDWIfile.write(line)
     MFDWIfile.close()
 
-  # Compute DTI
+  # Compute DTI and iDWI
   DTI = TempFolder + '/MF' + str(MFindex) + '_dti.nrrd'
-  ComputeDTICmdTable = dtiestimCmd + ['--dwi_image', MFDWI, '--tensor_output', DTI, '-m', 'wls']
+  iDWI = TempFolder + '/MF' + str(MFindex) + '_idwi.nrrd'
+  ComputeDTICmdTable = dtiestimCmd + ['--dwi_image', MFDWI, '--tensor_output', DTI, '--idwi', iDWI, '-m', 'wls']
   if not os.path.isfile(DTI): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeDTICmdTable)
+
+  # Compute brain mask # !! Brain mask needs to be computed only once because same for all MFs
+  BrainMask = TempFolder + '/brainmask.nrrd'
+  ComputeBrainMaskCmdTable = BrainMaskCmd + [iDWI, '--output', BrainMask, '--autoThreshold', '-e', '0'] # -e 0 : 0 erosion
+  if not os.path.isfile(BrainMask): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(ComputeBrainMaskCmdTable)
 
   # Compute FA # !! Fa needs to be computed only once because same for all MFs
   FA = TempFolder + '/fa.nrrd'
@@ -122,9 +136,15 @@ for MF in MFTable:
   if not os.path.isfile(FA): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeFACmdTable)
 
+  # Apply BrainMask to FA # !! Fa needs to be computed only once because same for all MFs
+  FAmasked = TempFolder + '/famasked.nrrd'
+  AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask]
+  if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(AplpyMasktoFACmdTable)
+
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
   Mask = TempFolder + '/mask.nrrd'
-  ComputeMaskCmdTable = OtsuThresholdCmd + [FA, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
+  ComputeMaskCmdTable = OtsuThresholdCmd + [FAmasked, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
   if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeMaskCmdTable)
 
