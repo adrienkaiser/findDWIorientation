@@ -9,26 +9,41 @@ import shutil # .copyfile()
 ############################################
 #             Args & Usage                 #
 ############################################
+ComputeBrainmask=1
+OutputFolder=''
 if len(sys.argv) < 3 : # sys.argv[0] = name of the script
   print '> Not enough arguments given!'
-  print '> Usage: $ python ./findDWIOrientation.py DWIfile TempFolder [OutputFolder] [> LogFile]'
+  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]'
   print '> If no OutputFolder given, it will be set to the TempFolder.'
   print '> EXIT'
   sys.exit(0)
 else:
   DWI=sys.argv[1]
   TempFolder = sys.argv[2]
-  if len(sys.argv) < 4 :
-    OutputFolder = TempFolder
-  else :
-    OutputFolder = sys.argv[3]
+  # 4 or more args
+  if len(sys.argv) >= 4 :
+    if sys.argv[3] == '--NoBrainmask' :
+      ComputeBrainmask=0
+    else :
+      OutputFolder = sys.argv[3]
+    # 5 args
+    if len(sys.argv) > 4 :
+      if sys.argv[4] == '--NoBrainmask' :
+        ComputeBrainmask=0
+      else :
+        OutputFolder = sys.argv[4]
 
-#DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
-#DWI='/rodent/SherylMoy/processing/dwi.nhdr'
-#DWI='/rodent/FAS_sulik/DTI2013/Processing/N50320/1-Converted/N50320_dwi.nhdr'
-#DWI='/rodent/FAS_sulik/DTI08/PN45ChallengeGrant/4K-02/4K-02_dwi.nhdr'
-#DWI='/home/akaiser/Networking/from_Utah/Data/b1000.nhdr'
-#TempFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
+if OutputFolder == '' :
+  OutputFolder = TempFolder
+
+# DWI
+# /NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr  => !! --NoBrainmask
+# /rodent/SherylMoy/processing/dwi.nhdr
+# /rodent/FAS_sulik/DTI2013/Processing/N50320/1-Converted/N50320_dwi.nhdr
+# /rodent/FAS_sulik/DTI08/PN45ChallengeGrant/4K-02/4K-02_dwi.nhdr
+# /home/akaiser/Networking/from_Utah/Data/b1000.nhdr
+# TempFolder
+# /NIRAL/work/akaiser/MF_FAS_Sulik2
 
 ############################################
 #              Check variables             #
@@ -65,7 +80,7 @@ def CheckTool(TestCmd):
   except:
     ExceptionCaught=1
   if ExceptionCaught or ExitCode!=0 :
-    print '> Error in:',Tool
+    print '> Error in:',TestCmd
     print '> ABORT'
     sys.exit(1)
 
@@ -83,6 +98,8 @@ tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/too
 CheckTool(tractoCmd + ['--help'])
 fiberstatsCmd=['/NIRAL/work/akaiser/Projects/dtiprocess-build/bin/fiberstats']
 CheckTool(fiberstatsCmd + ['--help'])
+MatlabCmd=['/tools/Matlab2011a/bin/matlab']
+CheckTool(MatlabCmd + ['-e']) # -e = env variables # -help returns 1
 
 ############################################
 # Compute avg fib len for all possible MFs #
@@ -140,11 +157,12 @@ for MF in MFTable:
   if not os.path.isfile(DTI): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeDTICmdTable)
 
-  # Compute brain mask # !! Brain mask needs to be computed only once because same for all MFs
-  BrainMask = TempFolder + '/brainmask.nrrd'
-  ComputeBrainMaskCmdTable = BrainMaskCmd + [iDWI, '--output', BrainMask, '--autoThreshold', '-e', '0'] # -e 0 : 0 erosion
-  if not os.path.isfile(BrainMask): # NO auto overwrite => if willing to overwrite, rm files
-    ExecuteCommand(ComputeBrainMaskCmdTable)
+  if ComputeBrainmask :
+    # Compute brain mask # !! Brain mask needs to be computed only once because same for all MFs
+    BrainMask = TempFolder + '/brainmask.nrrd'
+    ComputeBrainMaskCmdTable = BrainMaskCmd + [iDWI, '--output', BrainMask, '--autoThreshold', '-e', '0'] # -e 0 : 0 erosion
+    if not os.path.isfile(BrainMask): # NO auto overwrite => if willing to overwrite, rm files
+      ExecuteCommand(ComputeBrainMaskCmdTable)
 
   # Compute FA # !! Fa needs to be computed only once because same for all MFs
   FA = TempFolder + '/fa.nrrd'
@@ -152,11 +170,14 @@ for MF in MFTable:
   if not os.path.isfile(FA): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeFACmdTable)
 
-  # Apply BrainMask to FA # !! Fa needs to be computed only once because same for all MFs
-  FAmasked = TempFolder + '/famasked.nrrd'
-  AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask]
-  if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
-    ExecuteCommand(AplpyMasktoFACmdTable)
+  if ComputeBrainmask :
+    # Apply BrainMask to FA # !! Fa needs to be computed only once because same for all MFs
+    FAmasked = TempFolder + '/famasked.nrrd'
+    AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask]
+    if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
+      ExecuteCommand(AplpyMasktoFACmdTable)
+  else :
+    FAmasked = FA
 
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
   Mask = TempFolder + '/mask.nrrd'
@@ -180,10 +201,15 @@ for MF in MFTable:
       print '> ABORT'
       sys.exit(1)
 
-  # Read file to get value
+  # Read file to get value # 'Average Fiber Length' 'Minimum Fiber Length' 'Maximum Fiber Length' '75 percentile Fiber Length' '90 percentile Fiber Length' 'Average 75 Percentile Fiber Length'
   for line in open(FiberStatsOutputFile):
     if 'Average Fiber Length' in line :
-      AvgFibLenTupleTable.append( [MF,float( line.split(': ')[1] ) ] )
+      AvgFibLength = float( line.split(': ')[1] )
+    elif '75 percentile Fiber Length' in line :
+      PercFibLength = float( line.split(': ')[1] )
+    elif 'Average 75 Percentile Fiber Length' in line :
+      AvgPercFibLength = float( line.split(': ')[1] )
+  AvgFibLenTupleTable.append( [MF,AvgFibLength,PercFibLength,AvgPercFibLength] )
 
 ############################################
 #   Find max MF: max average fiber length  #
@@ -193,16 +219,27 @@ for MF in MFTable:
 AvgFibLenTupleTable = sorted(AvgFibLenTupleTable, key=lambda AvgFibLenTuple: AvgFibLenTuple[1], reverse=True) # reverse: higher in 1st position
 
 ## Display and write out file with all fib length values to plot them afterwards
-FibLengthTxt = TempFolder + '/FiberLengths.txt' # to load it in matlab: 'FiberLengthValues =  load('<TempFolder>/FiberLengths.txt');'
+FibLengthTxt = TempFolder + '/FiberLengths.txt'
 FibLengthTxtFile = open(FibLengthTxt,'w')
-print '> Results:'
+print '> Results: \t\t\t\t| Average Fiber Length \t75 percentile Fiber Length \tAverage 75 percentile Fiber Length'
 for AvgFibLenTuple in AvgFibLenTupleTable:
-  print '> MF', MFTable.index(AvgFibLenTuple[0])+1, '=', AvgFibLenTuple[0] + ' \t: Average Fiber Length = ' + str(AvgFibLenTuple[1])
-  FibLengthTxtFile.write( str(AvgFibLenTuple[1]) + ' ' )
+  print '> MF', MFTable.index(AvgFibLenTuple[0])+1, '=', AvgFibLenTuple[0] + ' \t| ' + str(AvgFibLenTuple[1]) + '\t\t' + str(AvgFibLenTuple[2]) + ' \t\t\t' + str(AvgFibLenTuple[3])
+  FibLengthTxtFile.write( str(MFTable.index(AvgFibLenTuple[0])+1) + ' ' + str(AvgFibLenTuple[1]) + ' ' + str(AvgFibLenTuple[2]) + ' ' + str(AvgFibLenTuple[3]) + '\n' )
 FibLengthTxtFile.close()
 
 ## Keep max Average Fiber Length in table (= 1st value because sorted)
 print '> The measurement frame MF', MFTable.index(AvgFibLenTupleTable[0][0])+1, ':', AvgFibLenTupleTable[0][0], '(AvgFibLen=' + str(AvgFibLenTupleTable[0][1]) + ') will be used.'
+
+## Plot average/75% values and write out plot image with matlab
+ScriptFolder = os.path.dirname(sys.argv[0])
+if ScriptFolder == '' :
+  ScriptFolder='.'
+PlotLenValuesCmdTable = MatlabCmd + ['-nodisplay', '-r', 'addpath(\'' + ScriptFolder + '\'); PlotLengthValues(\'' + TempFolder + '\')']
+if not os.path.isfile(TempFolder + '/FiberLengths.png'): # NO auto overwrite => if willing to overwrite, rm files
+  print '> If stays blocked after running the matlab command,'
+  print '> it probably means that the script has crashed and matlab is waiting for a command from the user:'
+  print '> You should run the matlab command manually.'
+  ExecuteCommand(PlotLenValuesCmdTable)
 
 ############################################
 #    Write final images to output folder   #
@@ -212,7 +249,6 @@ CorrectedDWI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFco
 shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dwi.nhdr', CorrectedDWI)
 CorrectedDTI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected_dti.nrrd' # os.path.split() gives the name of the file without path
 shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dti.nrrd', CorrectedDTI)
-
 
 ## Display execution time
 time2=time.time()

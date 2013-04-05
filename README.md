@@ -2,6 +2,14 @@
 
 Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography
 
+##Usage
+```
+Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]  
+If no OutputFolder given, it will be set to the TempFolder.  
+```
+`--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
+This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use `--NoBrainmask`  
+
 ##Workflow
 
 ####For each possible measurement frame:
@@ -13,7 +21,8 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 5. Apply Brain mask to FA (ImageMath)
 6. Compute WM mask from masked FA (OtsuThresholdSegmentation)
 7. Compute Full Brain Tractography from DTI + WM mask (TractographyLabelMapSeeding)
-8. Compute average fiber length from Full Brain Tractography (fiberstats)
+8. Compute average fiber length and other measures from Full Brain Tractography (fiberstats)
+9. Write out plot image of fiber length mesures (matlab)
 
 =&gt; The measurement frame that will have given the longest average fiber length is the right one!
 
@@ -42,39 +51,42 @@ $ python FindDWIOrientation.py
 > Running: ['dtiestim', '--dwi_image', 'MF24_dwi.nhdr', '--tensor_output', '/MF24_dti.nrrd', '-m', 'wls']  
 > Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF24_tracts.vtk']  
-> Results:  
-> MF 13 = (1,0,0) (0,-1,0) (0,0,1) 	: Average Fiber Length = 1.52304  
-> MF 15 = (0,1,0) (-1,0,0) (0,0,1) 	: Average Fiber Length = 0.842786  
+> Results:                              | Average Fiber Length  75 percentile Fiber Length   Average 75 percentile Fiber Length  
+> MF 13 = (1,0,0) (0,-1,0) (0,0,1) 	| 1.52304               1.98928                      2.17827  
+> MF 15 = (0,1,0) (-1,0,0) (0,0,1) 	| 0.842786              1.07967                      1.41568  
 ...  
-> MF 11 = (0,0,-1) (-1,0,0) (0,1,0) 	: Average Fiber Length = 0.624954  
+> MF 11 = (0,0,-1) (-1,0,0) (0,1,0) 	| 0.624954              0.719616                     0.89726  
 > The measurement frame MF 13 : (1,0,0) (0,-1,0) (0,0,1) (AvgFibLen=1.52304) will be used.  
-> Execution time = 842 s = 14 m 2 s  
+> Running: ['matlab', '-nodisplay', '-r', "addpath('/path/to/ScriptFolder'); PlotLengthValues('/path/to/OutputFolder')"]  
+> Execution time = 699 s = 11 m 39 s  
 ```
+
+<img width="100%" src="http://photos-4.dropbox.com/t/0/AABysHdCGvdatUOUdFldfvgMWUMGXxxg2IY30j_N2ITBEA/12/15963239/png/32x32/3/_/1/2/FiberLengths.png/BvJPsuPLYcQUSTmSM_mm1zK75rBy8Adv_9UHLg1gmE8?size=1600x1200"/>
 
 ##Possible measurement frames (24)
 ```
-(1,0,0) (0,1,0) (0,0,1)  
-(1,0,0) (0,0,1) (0,1,0)  
-(0,1,0) (1,0,0) (0,0,1)  
-(0,1,0) (0,0,1) (1,0,0)  
-(0,0,1) (1,0,0) (0,1,0)  
-(0,0,1) (0,1,0) (1,0,0)  
-(1,0,0) (0,1,0) (0,0,-1)  
-(1,0,0) (0,0,1) (0,-1,0)  
-(0,1,0) (1,0,0) (0,0,-1)  
-(0,1,0) (0,0,1) (-1,0,0)  
-(0,0,1) (1,0,0) (0,-1,0)  
-(0,0,1) (0,1,0) (-1,0,0)  
-(1,0,0) (0,-1,0) (0,0,1)  
-(1,0,0) (0,0,-1) (0,1,0)  
-(0,1,0) (-1,0,0) (0,0,1)  
-(0,1,0) (0,0,-1) (1,0,0)  
-(0,0,1) (-1,0,0) (0,1,0)  
-(0,0,1) (0,-1,0) (1,0,0)  
-(1,0,0) (0,-1,0) (0,0,-1)  
-(1,0,0) (0,0,-1) (0,-1,0)  
-(0,1,0) (-1,0,0) (0,0,-1)  
-(0,1,0) (0,0,-1) (-1,0,0)  
-(0,0,1) (-1,0,0) (0,-1,0)  
-(0,0,1) (0,-1,0) (-1,0,0)  
+1 : (1,0,0) (0,1,0) (0,0,1)  
+2 : (1,0,0) (0,0,1) (0,1,0)  
+3 : (0,1,0) (1,0,0) (0,0,1)  
+4 : (0,1,0) (0,0,1) (1,0,0)  
+5 : (0,0,1) (1,0,0) (0,1,0)  
+6 : (0,0,1) (0,1,0) (1,0,0)  
+7 : (1,0,0) (0,1,0) (0,0,-1)  
+8 : (1,0,0) (0,0,1) (0,-1,0)  
+9 : (0,1,0) (1,0,0) (0,0,-1)  
+10: (0,1,0) (0,0,1) (-1,0,0)  
+11: (0,0,1) (1,0,0) (0,-1,0)  
+12: (0,0,1) (0,1,0) (-1,0,0)  
+13: (1,0,0) (0,-1,0) (0,0,1)  
+14: (1,0,0) (0,0,-1) (0,1,0)  
+15: (0,1,0) (-1,0,0) (0,0,1)  
+16: (0,1,0) (0,0,-1) (1,0,0)  
+17: (0,0,1) (-1,0,0) (0,1,0)  
+18: (0,0,1) (0,-1,0) (1,0,0)  
+19: (1,0,0) (0,-1,0) (0,0,-1)  
+20: (1,0,0) (0,0,-1) (0,-1,0)  
+21: (0,1,0) (-1,0,0) (0,0,-1)  
+22: (0,1,0) (0,0,-1) (-1,0,0)  
+23: (0,0,1) (-1,0,0) (0,-1,0)  
+24: (0,0,1) (0,-1,0) (-1,0,0)  
 ```
