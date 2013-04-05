@@ -1,4 +1,4 @@
-#Find DWI Orientaion
+#Find DWI Orientation
 
 Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography
 
@@ -24,7 +24,7 @@ $ python FindDWIOrientation.py
 > Testing MF 1 : (1,0,0) (0,1,0) (0,0,1)  
 > Running: ['dtiestim', '--dwi_image', 'MF1_dwi.nhdr', '--tensor_output', 'MF1_dti.nrrd', '--idwi', 'MF1_idwi.nrrd', '-m', 'wls']  
 > Running: ['MaskComputationWithThresholding', 'MF1_idwi.nrrd', '--output', 'brainmask.nrrd', '--autoThreshold', '-e', '0']  
-> Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '-f', 'fa.nrrd']  
+> Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '--fa_output', 'fa.nrrd', '--scalar_float']  
 > Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd']  
 > Running: ['Slicer', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
 > Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  

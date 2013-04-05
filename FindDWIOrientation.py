@@ -1,13 +1,37 @@
 #!/usr/bin/python
 
 import os # .access .path .rename .remove .mkdir
-import sys # .exit
+import sys # .exit .argv
 import subprocess # .call
 import time # .time()
 import shutil # .copyfile()
 
 ############################################
-#             Define variables             #
+#             Args & Usage                 #
+############################################
+if len(sys.argv) < 3 : # sys.argv[0] = name of the script
+  print '> Not enough arguments given!'
+  print '> Usage: $ python ./findDWIOrientation.py DWIfile TempFolder [OutputFolder] [> LogFile]'
+  print '> If no OutputFolder given, it will be set to the TempFolder.'
+  print '> EXIT'
+  sys.exit(0)
+else:
+  DWI=sys.argv[1]
+  TempFolder = sys.argv[2]
+  if len(sys.argv) < 4 :
+    OutputFolder = TempFolder
+  else :
+    OutputFolder = sys.argv[3]
+
+#DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
+#DWI='/rodent/SherylMoy/processing/dwi.nhdr'
+#DWI='/rodent/FAS_sulik/DTI2013/Processing/N50320/1-Converted/N50320_dwi.nhdr'
+#DWI='/rodent/FAS_sulik/DTI08/PN45ChallengeGrant/4K-02/4K-02_dwi.nhdr'
+#DWI='/home/akaiser/Networking/from_Utah/Data/b1000.nhdr'
+#TempFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
+
+############################################
+#              Check variables             #
 ############################################
 def CheckFolder (folder):
   if os.path.isdir(folder):
@@ -23,21 +47,13 @@ def CheckFolder (folder):
       sys.exit(1)
     os.mkdir(folder)
 
-#DWI='/NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr'
-#DWI='/rodent/SherylMoy/processing/dwi.nhdr'
-DWI='/rodent/FAS_sulik/DTI2013/Processing/N50320/1-Converted/N50320_dwi.nhdr'
-#DWI='/rodent/FAS_sulik/DTI08/PN45ChallengeGrant/4K-02/4K-02_dwi.nhdr'
-#DWI='/home/akaiser/Networking/from_Utah/Data/b1000.nhdr'
 if not os.access(DWI, os.R_OK):
   print '> The given DWI is not readable:',DWI
   print '> ABORT'
   sys.exit(1)
 
-OutputFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
-CheckFolder(OutputFolder)
-
-TempFolder='/NIRAL/work/akaiser/MF_FAS_Sulik2'
 CheckFolder(TempFolder)
+CheckFolder(OutputFolder)
 
 ############################################
 #       Define and check tools             #
@@ -132,7 +148,7 @@ for MF in MFTable:
 
   # Compute FA # !! Fa needs to be computed only once because same for all MFs
   FA = TempFolder + '/fa.nrrd'
-  ComputeFACmdTable = dtiprocessCmd + ['--dti_image', DTI, '-f', FA]
+  ComputeFACmdTable = dtiprocessCmd + ['--dti_image', DTI, '--fa_output', FA, '--scalar_float']
   if not os.path.isfile(FA): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeFACmdTable)
 
@@ -150,7 +166,7 @@ for MF in MFTable:
 
   # Compute Tractography
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
-  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask]
+  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask] # if 'Mask' contains several labels: By default, the seeding region is the label 1
   if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeTractsCmdTable)
 
@@ -175,9 +191,15 @@ for MF in MFTable:
 
 ## Sort Average Fiber Length table by AvgFibLen
 AvgFibLenTupleTable = sorted(AvgFibLenTupleTable, key=lambda AvgFibLenTuple: AvgFibLenTuple[1], reverse=True) # reverse: higher in 1st position
+
+## Display and write out file with all fib length values to plot them afterwards
+FibLengthTxt = TempFolder + '/FiberLengths.txt' # to load it in matlab: 'FiberLengthValues =  load('<TempFolder>/FiberLengths.txt');'
+FibLengthTxtFile = open(FibLengthTxt,'w')
 print '> Results:'
 for AvgFibLenTuple in AvgFibLenTupleTable:
   print '> MF', MFTable.index(AvgFibLenTuple[0])+1, '=', AvgFibLenTuple[0] + ' \t: Average Fiber Length = ' + str(AvgFibLenTuple[1])
+  FibLengthTxtFile.write( str(AvgFibLenTuple[1]) + ' ' )
+FibLengthTxtFile.close()
 
 ## Keep max Average Fiber Length in table (= 1st value because sorted)
 print '> The measurement frame MF', MFTable.index(AvgFibLenTupleTable[0][0])+1, ':', AvgFibLenTupleTable[0][0], '(AvgFibLen=' + str(AvgFibLenTupleTable[0][1]) + ') will be used.'
