@@ -4,7 +4,8 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 
 ##Usage
 ```
-Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]  
+Usage (in this exact order):  
+$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]  
 If no OutputFolder given, it will be set to the TempFolder.  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
@@ -61,7 +62,7 @@ $ python FindDWIOrientation.py
 > Execution time = 699 s = 11 m 39 s  
 ```
 
-<img width="100%" src="http://photos-4.dropbox.com/t/0/AABysHdCGvdatUOUdFldfvgMWUMGXxxg2IY30j_N2ITBEA/12/15963239/png/32x32/3/_/1/2/FiberLengths.png/BvJPsuPLYcQUSTmSM_mm1zK75rBy8Adv_9UHLg1gmE8?size=1600x1200"/>
+<img width="70%" src="http://www.adrienkaiser.fr/FiberLengths.png"/>
 
 ##Possible measurement frames (24)
 ```
