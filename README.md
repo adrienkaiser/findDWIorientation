@@ -1,15 +1,16 @@
 #Find DWI Orientation
-
+Python script for linux:
 Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography
 
 ##Usage
 ```
 Usage (in this exact order):  
-$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]  
+$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [> <LogFile>]  
 If no OutputFolder given, it will be set to the TempFolder.  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
-This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use `--NoBrainmask`  
+This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
+`--UseFullBrainMaskForTracto`: If the WM mask computed by OtsuThresholdSegmentation is bad, this option allows you to use the full brain mask computed with MaskComputationWithThresholding as seed for the tractography.  
 
 ##Workflow
 
@@ -35,7 +36,7 @@ $ python FindDWIOrientation.py
 > Running: ['dtiestim', '--dwi_image', 'MF1_dwi.nhdr', '--tensor_output', 'MF1_dti.nrrd', '--idwi', 'MF1_idwi.nrrd', '-m', 'wls']  
 > Running: ['MaskComputationWithThresholding', 'MF1_idwi.nrrd', '--output', 'brainmask.nrrd', '--autoThreshold', '-e', '0']  
 > Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '--fa_output', 'fa.nrrd', '--scalar_float']  
-> Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd']  
+> Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd', '-type', 'float']  
 > Running: ['Slicer', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
 > Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF1_tracts.vtk']  
@@ -53,10 +54,10 @@ $ python FindDWIOrientation.py
 > Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF24_tracts.vtk']  
 > Results:                              | Average Fiber Length  75 percentile Fiber Length   Average 75 percentile Fiber Length  
-> MF 13 = (1,0,0) (0,-1,0) (0,0,1) 	| 1.52304               1.98928                      2.17827  
-> MF 15 = (0,1,0) (-1,0,0) (0,0,1) 	| 0.842786              1.07967                      1.41568  
+> MF 13 = (1,0,0) (0,-1,0) (0,0,1)      | 1.52304               1.98928                      2.17827  
+> MF 15 = (0,1,0) (-1,0,0) (0,0,1)      | 0.842786              1.07967                      1.41568  
 ...  
-> MF 11 = (0,0,-1) (-1,0,0) (0,1,0) 	| 0.624954              0.719616                     0.89726  
+> MF 11 = (0,0,-1) (-1,0,0) (0,1,0)     | 0.624954              0.719616                     0.89726  
 > The measurement frame MF 13 : (1,0,0) (0,-1,0) (0,0,1) (AvgFibLen=1.52304) will be used.  
 > Running: ['matlab', '-nodisplay', '-r', "addpath('/path/to/ScriptFolder'); PlotLengthValues('/path/to/OutputFolder')"]  
 > Execution time = 699 s = 11 m 39 s  

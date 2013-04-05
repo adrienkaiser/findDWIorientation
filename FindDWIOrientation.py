@@ -10,10 +10,11 @@ import shutil # .copyfile()
 #             Args & Usage                 #
 ############################################
 ComputeBrainmask=1
+UseFullBrainMaskForTracto=0
 OutputFolder=''
 if len(sys.argv) < 3 : # sys.argv[0] = name of the script
   print '> Not enough arguments given!'
-  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]'
+  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [> <LogFile>]'
   print '> If no OutputFolder given, it will be set to the TempFolder.'
   print '> EXIT'
   sys.exit(0)
@@ -21,17 +22,29 @@ else:
   DWI=sys.argv[1]
   TempFolder = sys.argv[2]
   # 4 or more args
-  if len(sys.argv) >= 4 :
+  if len(sys.argv) > 3 :
     if sys.argv[3] == '--NoBrainmask' :
       ComputeBrainmask=0
+    elif sys.argv[3] == '--UseFullBrainMaskForTracto' :
+      UseFullBrainMaskForTracto=1
     else :
       OutputFolder = sys.argv[3]
-    # 5 args
+    # 5 or more args
     if len(sys.argv) > 4 :
       if sys.argv[4] == '--NoBrainmask' :
         ComputeBrainmask=0
+      elif sys.argv[4] == '--UseFullBrainMaskForTracto' :
+        UseFullBrainMaskForTracto=1
       else :
         OutputFolder = sys.argv[4]
+      # 6 args
+      if len(sys.argv) > 5 :
+        if sys.argv[5] == '--NoBrainmask' :
+          ComputeBrainmask=0
+        elif sys.argv[5] == '--UseFullBrainMaskForTracto' :
+          UseFullBrainMaskForTracto=1
+        else :
+          OutputFolder = sys.argv[5]
 
 if OutputFolder == '' :
   OutputFolder = TempFolder
@@ -173,17 +186,20 @@ for MF in MFTable:
   if ComputeBrainmask :
     # Apply BrainMask to FA # !! Fa needs to be computed only once because same for all MFs
     FAmasked = TempFolder + '/famasked.nrrd'
-    AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask]
+    AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask, '-type', 'float']
     if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
       ExecuteCommand(AplpyMasktoFACmdTable)
   else :
     FAmasked = FA
 
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
-  Mask = TempFolder + '/mask.nrrd'
-  ComputeMaskCmdTable = OtsuThresholdCmd + [FAmasked, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
-  if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
-    ExecuteCommand(ComputeMaskCmdTable)
+  if not ComputeBrainmask or not UseFullBrainMaskForTracto :
+    Mask = TempFolder + '/mask.nrrd'
+    ComputeMaskCmdTable = OtsuThresholdCmd + [FAmasked, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
+    if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
+      ExecuteCommand(ComputeMaskCmdTable)
+  else : # ComputeBrainmask and UseFullBrainMaskForTracto
+    Mask = BrainMask
 
   # Compute Tractography
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
