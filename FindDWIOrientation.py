@@ -31,7 +31,7 @@ else :
   TempFolder = sys.argv[2]
   if len(sys.argv) > 3 :
     ParseArgs(3)
-	if len(sys.argv) > 4 :
+    if len(sys.argv) > 4 :
       ParseArgs(4)
       if len(sys.argv) > 5 :
         ParseArgs(5)
