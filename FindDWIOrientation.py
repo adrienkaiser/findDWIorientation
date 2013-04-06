@@ -9,6 +9,14 @@ import shutil # .copyfile()
 ############################################
 #             Args & Usage                 #
 ############################################
+def ParseArgs (argIndex) :
+  if sys.argv[argIndex] == '--NoBrainmask' :
+    ComputeBrainmask=0
+  elif sys.argv[argIndex] == '--UseFullBrainMaskForTracto' :
+    UseFullBrainMaskForTracto=1
+  else :
+    OutputFolder = sys.argv[argIndex]
+
 ComputeBrainmask=1
 UseFullBrainMaskForTracto=0
 OutputFolder=''
@@ -18,33 +26,15 @@ if len(sys.argv) < 3 : # sys.argv[0] = name of the script
   print '> If no OutputFolder given, it will be set to the TempFolder.'
   print '> EXIT'
   sys.exit(0)
-else:
+else :
   DWI=sys.argv[1]
   TempFolder = sys.argv[2]
-  # 4 or more args
   if len(sys.argv) > 3 :
-    if sys.argv[3] == '--NoBrainmask' :
-      ComputeBrainmask=0
-    elif sys.argv[3] == '--UseFullBrainMaskForTracto' :
-      UseFullBrainMaskForTracto=1
-    else :
-      OutputFolder = sys.argv[3]
-    # 5 or more args
-    if len(sys.argv) > 4 :
-      if sys.argv[4] == '--NoBrainmask' :
-        ComputeBrainmask=0
-      elif sys.argv[4] == '--UseFullBrainMaskForTracto' :
-        UseFullBrainMaskForTracto=1
-      else :
-        OutputFolder = sys.argv[4]
-      # 6 args
+    ParseArgs(3)
+	if len(sys.argv) > 4 :
+      ParseArgs(4)
       if len(sys.argv) > 5 :
-        if sys.argv[5] == '--NoBrainmask' :
-          ComputeBrainmask=0
-        elif sys.argv[5] == '--UseFullBrainMaskForTracto' :
-          UseFullBrainMaskForTracto=1
-        else :
-          OutputFolder = sys.argv[5]
+        ParseArgs(5)
 
 if OutputFolder == '' :
   OutputFolder = TempFolder
