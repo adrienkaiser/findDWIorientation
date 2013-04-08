@@ -66,19 +66,22 @@ def CheckFolder (folder):
       sys.exit(1)
   else:
     print '> The given output folder does not exist, it will be created:',folder
-    if not os.access(os.path.dirname(folder), os.W_OK):
+    ParentFolder = os.path.dirname(folder)
+    if ParentFolder == '' :
+      ParentFolder = '.'
+    if not os.access(ParentFolder, os.W_OK):
       print '> The parent of the given output folder is not writable:',os.path.dirname(folder)
       print '> ABORT'
       sys.exit(1)
     os.mkdir(folder)
 
+CheckFolder(TempFolder)
+CheckFolder(OutputFolder)
+
 if not os.access(DWI, os.R_OK):
   print '> The given DWI is not readable:',DWI
   print '> ABORT'
   sys.exit(1)
-
-CheckFolder(TempFolder)
-CheckFolder(OutputFolder)
 
 ############################################
 #       Define and check tools             #
