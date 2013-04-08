@@ -5,7 +5,7 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 ##Usage
 ```
 Usage (in this exact order):  
-$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [> <LogFile>]  
+$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
 If no OutputFolder given, it will be set to the TempFolder.  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
@@ -31,6 +31,7 @@ This brainmask computation can fail for some images, so if your image does not h
 ##Output
 ```
 $ python FindDWIOrientation.py  
+> Running: ['unu', 'resample', '-i', 'dwi.nhdr', '--size', '128', '64', '64', '7', '-o', 'dwi_Downsampled4.nhdr']  
 > Testing 24 measurement frames...  
 > Testing MF 1 : (1,0,0) (0,1,0) (0,0,1)  
 > Running: ['dtiestim', '--dwi_image', 'MF1_dwi.nhdr', '--tensor_output', 'MF1_dti.nrrd', '--idwi', 'MF1_idwi.nrrd', '-m', 'wls']  
