@@ -6,36 +6,6 @@ import subprocess # .call
 import time # .time()
 import shutil # .copyfile()
 
-############################################
-#             Args & Usage                 #
-############################################
-ComputeBrainmask=1
-OutputFolder=''
-if len(sys.argv) < 3 : # sys.argv[0] = name of the script
-  print '> Not enough arguments given!'
-  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [> <LogFile>]'
-  print '> If no OutputFolder given, it will be set to the TempFolder.'
-  print '> EXIT'
-  sys.exit(0)
-else:
-  DWI=sys.argv[1]
-  TempFolder = sys.argv[2]
-  # 4 or more args
-  if len(sys.argv) >= 4 :
-    if sys.argv[3] == '--NoBrainmask' :
-      ComputeBrainmask=0
-    else :
-      OutputFolder = sys.argv[3]
-    # 5 args
-    if len(sys.argv) > 4 :
-      if sys.argv[4] == '--NoBrainmask' :
-        ComputeBrainmask=0
-      else :
-        OutputFolder = sys.argv[4]
-
-if OutputFolder == '' :
-  OutputFolder = TempFolder
-
 # DWI
 # /NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr  => !! --NoBrainmask
 # /rodent/SherylMoy/processing/dwi.nhdr
@@ -44,6 +14,46 @@ if OutputFolder == '' :
 # /home/akaiser/Networking/from_Utah/Data/b1000.nhdr
 # TempFolder
 # /NIRAL/work/akaiser/MF_FAS_Sulik2
+
+############################################
+#             Args & Usage                 #
+############################################
+def ParseArgs (argIndex, ArgTable) : # ArgTable = ComputeBrainmask, UseFullBrainMaskForTracto, DownsamplingFactor, OutputFolder
+  if sys.argv[argIndex] == '--NoBrainmask' :
+    ArgTable[0] = 0
+  elif sys.argv[argIndex] == '--UseFullBrainMaskForTracto' :
+    ArgTable[1] = 1
+  elif '--DownsampleImage' in sys.argv[argIndex] :
+    ArgTable[2] = sys.argv[argIndex].split('=')[1]
+  else :
+    ArgTable[3] = sys.argv[argIndex]
+  return ArgTable
+
+ArgTable = [1, 0, -1, ''] # ComputeBrainmask, UseFullBrainMaskForTracto, DownsamplingFactor, OutputFolder
+if len(sys.argv) < 3 : # sys.argv[0] = name of the script
+  print '> Not enough arguments given!'
+  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]'
+  print '> If no OutputFolder given, it will be set to the TempFolder.'
+  print '> EXIT'
+  sys.exit(0)
+else :
+  DWI=sys.argv[1]
+  TempFolder = sys.argv[2]
+  if len(sys.argv) > 3 :
+    ArgTable = ParseArgs(3, ArgTable)
+    if len(sys.argv) > 4 :
+      ArgTable = ParseArgs(4, ArgTable)
+      if len(sys.argv) > 5 :
+        ArgTable = ParseArgs(5, ArgTable)
+        if len(sys.argv) > 6 :
+          ArgTable = ParseArgs(6, ArgTable)
+
+ComputeBrainmask = ArgTable[0]
+UseFullBrainMaskForTracto = ArgTable[1]
+DownsamplingFactor = ArgTable[2]
+OutputFolder = ArgTable[3]
+if OutputFolder == '' :
+  OutputFolder = TempFolder
 
 ############################################
 #              Check variables             #
@@ -84,6 +94,8 @@ def CheckTool(TestCmd):
     print '> ABORT'
     sys.exit(1)
 
+unuCmd=['/tools/bin_linux64/unu']
+CheckTool(unuCmd + ['--help'])
 dtiestimCmd=['/tools/bin_linux64/dtiestim']
 CheckTool(dtiestimCmd + ['--help'])
 BrainMaskCmd=['/home/akaiser/MaskComputationWithThresholding-build/MaskComputationWithThresholding'] # ['/rodent/bin_linux64/toolsMarch2013/MaskComputationWithThresholding']
@@ -122,6 +134,34 @@ for XYZ in [ (X,Y,Z) for X in [1] for Y in doubles for Z in doubles ]: # X is on
     if XYZtriple[1] != XYZtriple[0] and XYZtriple[2] != XYZtriple[1] and XYZtriple[2] != XYZtriple[0]: # then OK
       MF = XYZtriple[0].replace('X',str(XYZ[0])) + ' ' + XYZtriple[1].replace('X',str(XYZ[1])) + ' ' + XYZtriple[2].replace('X',str(XYZ[2]))
       MFTable.append(MF)
+
+## Downsample image if asked
+if DownsamplingFactor > 1 : # if 1 or below: no interest
+  # Get DWI size and divide it
+  for line in open(DWI):
+    if 'sizes' in line :
+      SizesTable = line.replace('\n','').split(' ')[1:5] # remove \n from the array before splitting
+    if 'kinds' in line : # kinds: space space space list => needs to find where list is
+      WhereIsList = line.replace('\n','').split(' ').index('list') - 1 # index of list in SizesTable (-1 because 'kinds:' is not in the table)
+  SizesTable[WhereIsList] = int(SizesTable[WhereIsList]) * int(DownsamplingFactor) # Multiply the nb of dirs so then we can divide the whole SizesTable
+  SizesTable = [ str(int(x)/int(DownsamplingFactor)) for x in SizesTable ] # divide whole list 
+
+  # Downsample image
+  ResampledDWI = TempFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_Downsampled' + str(DownsamplingFactor) + '.nhdr'
+  DownsampleCmdTable = unuCmd + ['resample', '-i', DWI, '--size', SizesTable[0], SizesTable[1], SizesTable[2], SizesTable[3], '-o', ResampledDWI]
+  if not os.path.isfile(ResampledDWI): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(DownsampleCmdTable)
+
+  # Update new DWI header
+  TempNhdr =  TempFolder + '/tempfile.nhdr'
+  TempFile = open(TempNhdr,'w')
+  for line in open(ResampledDWI):
+    line = line.replace('???','list')
+    TempFile.write(line)
+  TempFile.close()
+  os.remove(ResampledDWI)
+  os.rename(TempNhdr,ResampledDWI)
+  DWI = ResampledDWI
 
 ## Compute Avg Fiber Length for all possible MFs
 time1=time.time()
@@ -173,17 +213,20 @@ for MF in MFTable:
   if ComputeBrainmask :
     # Apply BrainMask to FA # !! Fa needs to be computed only once because same for all MFs
     FAmasked = TempFolder + '/famasked.nrrd'
-    AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask]
+    AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask, '-type', 'float']
     if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
       ExecuteCommand(AplpyMasktoFACmdTable)
   else :
     FAmasked = FA
 
   # Compute mask by OTSU thresholding FA # !! Mask needs to be computed only once because same for all MFs
-  Mask = TempFolder + '/mask.nrrd'
-  ComputeMaskCmdTable = OtsuThresholdCmd + [FAmasked, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
-  if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
-    ExecuteCommand(ComputeMaskCmdTable)
+  if not ComputeBrainmask or not UseFullBrainMaskForTracto :
+    Mask = TempFolder + '/mask.nrrd'
+    ComputeMaskCmdTable = OtsuThresholdCmd + [FAmasked, Mask, '--minimumObjectSize', '10', '--brightObjects'] # brightObjects= bright = fa = 1 # --minimumObjectSize 10 => to avoid 1-voxel artefacts
+    if not os.path.isfile(Mask): # NO auto overwrite => if willing to overwrite, rm files
+      ExecuteCommand(ComputeMaskCmdTable)
+  else : # ComputeBrainmask and UseFullBrainMaskForTracto
+    Mask = BrainMask
 
   # Compute Tractography
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
@@ -234,12 +277,13 @@ print '> The measurement frame MF', MFTable.index(AvgFibLenTupleTable[0][0])+1, 
 ScriptFolder = os.path.dirname(sys.argv[0])
 if ScriptFolder == '' :
   ScriptFolder='.'
-PlotLenValuesCmdTable = MatlabCmd + ['-nodisplay', '-r', 'addpath(\'' + ScriptFolder + '\'); PlotLengthValues(\'' + TempFolder + '\')']
-if not os.path.isfile(TempFolder + '/FiberLengths.png'): # NO auto overwrite => if willing to overwrite, rm files
-  print '> If stays blocked after running the matlab command,'
-  print '> it probably means that the script has crashed and matlab is waiting for a command from the user:'
-  print '> You should run the matlab command manually.'
-  ExecuteCommand(PlotLenValuesCmdTable)
+if os.path.isfile(ScriptFolder + '/PlotLengthValues.m') : # If matlab script found, otherwise no plot image
+  PlotLenValuesCmdTable = MatlabCmd + ['-nodisplay', '-r', 'addpath(\'' + ScriptFolder + '\'); PlotLengthValues(\'' + TempFolder + '\')']
+  if not os.path.isfile(TempFolder + '/FiberLengths.png'): # NO auto overwrite => if willing to overwrite, rm files
+    print '> If stays blocked after running the matlab command,'
+    print '> it probably means that the script has crashed and matlab is waiting for a command from the user:'
+    print '> You should run the matlab command manually.'
+    ExecuteCommand(PlotLenValuesCmdTable)
 
 ############################################
 #    Write final images to output folder   #
