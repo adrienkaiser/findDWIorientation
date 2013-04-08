@@ -277,12 +277,13 @@ print '> The measurement frame MF', MFTable.index(AvgFibLenTupleTable[0][0])+1, 
 ScriptFolder = os.path.dirname(sys.argv[0])
 if ScriptFolder == '' :
   ScriptFolder='.'
-PlotLenValuesCmdTable = MatlabCmd + ['-nodisplay', '-r', 'addpath(\'' + ScriptFolder + '\'); PlotLengthValues(\'' + TempFolder + '\')']
-if not os.path.isfile(TempFolder + '/FiberLengths.png'): # NO auto overwrite => if willing to overwrite, rm files
-  print '> If stays blocked after running the matlab command,'
-  print '> it probably means that the script has crashed and matlab is waiting for a command from the user:'
-  print '> You should run the matlab command manually.'
-  ExecuteCommand(PlotLenValuesCmdTable)
+if os.path.isfile(ScriptFolder + '/PlotLengthValues.m') : # If matlab script found, otherwise no plot image
+  PlotLenValuesCmdTable = MatlabCmd + ['-nodisplay', '-r', 'addpath(\'' + ScriptFolder + '\'); PlotLengthValues(\'' + TempFolder + '\')']
+  if not os.path.isfile(TempFolder + '/FiberLengths.png'): # NO auto overwrite => if willing to overwrite, rm files
+    print '> If stays blocked after running the matlab command,'
+    print '> it probably means that the script has crashed and matlab is waiting for a command from the user:'
+    print '> You should run the matlab command manually.'
+    ExecuteCommand(PlotLenValuesCmdTable)
 
 ############################################
 #    Write final images to output folder   #
