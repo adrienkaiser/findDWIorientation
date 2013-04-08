@@ -107,9 +107,9 @@ dtiprocessCmd=['/tools/bin_linux64/dtiprocess']
 CheckTool(dtiprocessCmd + ['--help'])
 ImageMathCmd=['/tools/bin_linux64/ImageMath']
 CheckTool(ImageMathCmd + ['-help'])
-OtsuThresholdCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/OtsuThresholdSegmentation']
+OtsuThresholdCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launcher-no-splash', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/OtsuThresholdSegmentation']
 CheckTool(OtsuThresholdCmd + ['--help'])
-tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/TractographyLabelMapSeeding']
+tractoCmd=['/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/Slicer', '--launcher-no-splash', '--launch', '/tools/Slicer4/Slicer-4.2.2-1-linux-amd64/lib/Slicer-4.2/cli-modules/TractographyLabelMapSeeding']
 CheckTool(tractoCmd + ['--help'])
 fiberstatsCmd=['/NIRAL/work/akaiser/Projects/dtiprocess-build/bin/fiberstats']
 CheckTool(fiberstatsCmd + ['--help'])

@@ -38,21 +38,21 @@ $ python FindDWIOrientation.py
 > Running: ['MaskComputationWithThresholding', 'MF1_idwi.nrrd', '--output', 'brainmask.nrrd', '--autoThreshold', '-e', '0']  
 > Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '--fa_output', 'fa.nrrd', '--scalar_float']  
 > Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd', '-type', 'float']  
-> Running: ['Slicer', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF1_tracts.vtk']  
 > Testing MF 2 : (1,0,0) (0,0,1) (0,1,0)  
 > Running: ['dtiestim', '--dwi_image', 'MF2_dwi.nhdr', '--tensor_output', '/MF2_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF2_dti.nrrd', 'MF2_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF2_dti.nrrd', 'MF2_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF2_tracts.vtk']  
 > Testing MF 3 : (0,1,0) (1,0,0) (0,0,1)  
 > Running: ['dtiestim', '--dwi_image', 'MF3_dwi.nhdr', '--tensor_output', '/MF3_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF3_dti.nrrd', 'MF3_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF3_dti.nrrd', 'MF3_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF3_tracts.vtk']  
 ...  
 > Testing MF 24 : (0,0,-1) (0,-1,0) (-1,0,0)  
 > Running: ['dtiestim', '--dwi_image', 'MF24_dwi.nhdr', '--tensor_output', '/MF24_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF24_tracts.vtk']  
 > Results:                              | Average Fiber Length  75 percentile Fiber Length   Average 75 percentile Fiber Length  
 > MF 13 = (1,0,0) (0,-1,0) (0,0,1)      | 1.52304               1.98928                      2.17827  
