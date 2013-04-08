@@ -97,6 +97,8 @@ def CheckTool(TestCmd):
     print '> ABORT'
     sys.exit(1)
 
+ResampleVolume2Cmd=['/tools/bin_linux64/ResampleVolume2']
+CheckTool(ResampleVolume2Cmd + ['--help'])
 unuCmd=['/tools/bin_linux64/unu']
 CheckTool(unuCmd + ['--help'])
 dtiestimCmd=['/tools/bin_linux64/dtiestim']
@@ -138,6 +140,17 @@ for XYZ in [ (X,Y,Z) for X in [1] for Y in doubles for Z in doubles ]: # X is on
       MF = XYZtriple[0].replace('X',str(XYZ[0])) + ' ' + XYZtriple[1].replace('X',str(XYZ[1])) + ' ' + XYZtriple[2].replace('X',str(XYZ[2]))
       MFTable.append(MF)
 
+## Convert input DWI to nhdr if nrrd
+ConvertDWI = 0 # variable to convert back to nrrd when done
+DWIPathParsed = os.path.split(DWI)[1].split('.')
+if DWIPathParsed[ len(DWIPathParsed)-1 ] == 'nrrd' : # get last extension
+  ConvertedDWI = TempFolder + '/' + DWIPathParsed[0] + '.nhdr'
+  ConvertDWICmdTable = ResampleVolume2Cmd + [DWI, ConvertedDWI]
+  if not os.path.isfile(ConvertedDWI): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(ConvertDWICmdTable)
+  DWI = ConvertedDWI
+  ConvertDWI = 1
+
 ## Downsample image if asked
 if DownsamplingFactor > 1 : # if 1 or below: no interest
   # Get DWI size and divide it
@@ -145,7 +158,7 @@ if DownsamplingFactor > 1 : # if 1 or below: no interest
     if 'sizes' in line :
       SizesTable = line.replace('\n','').split(' ')[1:5] # remove \n from the array before splitting
     if 'kinds' in line : # kinds: space space space list => needs to find where list is
-      WhereIsList = line.replace('\n','').split(' ').index('list') - 1 # index of list in SizesTable (-1 because 'kinds:' is not in the table)
+      WhereIsList = line.replace('\n','').replace('vector','list').split(' ').index('list') - 1 # index of 'list' (or 'vector') in SizesTable (-1 because 'kinds:' is not in the table)
   SizesTable[WhereIsList] = int(SizesTable[WhereIsList]) * int(DownsamplingFactor) # Multiply the nb of dirs so then we can divide the whole SizesTable
   SizesTable = [ str(int(x)/int(DownsamplingFactor)) for x in SizesTable ] # divide whole list 
 
@@ -309,7 +322,15 @@ for line in open(DWI): # read all lines and replace line containing 'measurement
   else :
     CorrectedDWIfile.write(line)
 CorrectedDWIfile.close()
-print '> The MF corrected DWI has been written:',CorrectedDWI
+print '> The MF corrected DWI header has been written:',CorrectedDWI
+
+# Convert nhdr back to nrrd if was a nrrd originally
+if ConvertDWI :
+  CorrectedDWInrrd = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nrrd'
+  ConvertDWInrrdCmdTable = ResampleVolume2Cmd + [CorrectedDWI, CorrectedDWInrrd]
+  if not os.path.isfile(CorrectedDWInrrd): # NO auto overwrite => if willing to overwrite, rm files
+    ExecuteCommand(ConvertDWInrrdCmdTable)
+  print '> The MF corrected nrrd DWI has been written:',CorrectedDWInrrd
 
 ## Display execution time
 time2=time.time()

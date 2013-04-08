@@ -8,6 +8,7 @@ Usage (in this exact order):
 $ python ./findDWIOrientation.py DWIfile OutputFolder [<TempFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
 If no TempFolder given, it will be set to the OutputFolder.  
 ```
+DWI can be either .nhdr or .nrrd  
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
 This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
 `--UseFullBrainMaskForTracto`: If the WM mask computed by OtsuThresholdSegmentation is bad, this option allows you to use the full brain mask computed with MaskComputationWithThresholding as seed for the tractography.  
