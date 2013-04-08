@@ -4,6 +4,7 @@ import os # .access .path .rename .remove .mkdir
 import sys # .exit .argv
 import subprocess # .call
 import time # .time()
+import getopt # .getopt() : to parse the cmd line args
 #import shutil # .copyfile()
 
 # DWI
@@ -18,41 +19,63 @@ import time # .time()
 ############################################
 #             Args & Usage                 #
 ############################################
-def ParseArgs (argIndex, ArgTable) : # ArgTable = ComputeBrainmask, UseFullBrainMaskForTracto, DownsamplingFactor, OutputFolder
-  if sys.argv[argIndex] == '--NoBrainmask' :
-    ArgTable[0] = 0
-  elif sys.argv[argIndex] == '--UseFullBrainMaskForTracto' :
-    ArgTable[1] = 1
-  elif '--DownsampleImage' in sys.argv[argIndex] :
-    ArgTable[2] = sys.argv[argIndex].split('=')[1]
-  else :
-    ArgTable[3] = sys.argv[argIndex]
-  return ArgTable
+def DisplayUsage () :
+  print '> USAGE : $ python FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
+  print '> -h --help                       : Display usage'
+  print '> -i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)'
+  print '> -o --OutputFolder <string>      : Output folder'
+  print '> -t --TempFolder <string>        : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)'
+  print '> -n --NoBrainmask                : If the image has not much noise, you do not need the brain mask'
+  print '> -f --UseFullBrainMaskForTracto  : Compute tractography in the full brain'
+  print '> -d --DownsampleImage <int>      : Downsample the input image to have faster processing'
 
-ArgTable = [1, 0, -1, ''] # ComputeBrainmask, UseFullBrainMaskForTracto, DownsamplingFactor, OutputFolder
-if len(sys.argv) < 3 : # sys.argv[0] = name of the script
-  print '> Not enough arguments given!'
-  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile OutputFolder [<TempFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]'
-  print '> If no TempFolder given, it will be set to the OutputFolder.'
-  print '> EXIT'
+# parse args into lists 'opts' and 'args'
+try:
+  opts, args = getopt.getopt(sys.argv[1:],'hi:o:t:nfd:',['help','inputDWI=','OutputFolder=','TempFolder=','NoBrainmask','UseFullBrainMaskForTracto','DownsampleImage='])
+except getopt.GetoptError:
+  print '> Error parsing aruments'
+  DisplayUsage()
+  sys.exit(1)
+
+if not opts :
+  DisplayUsage()
   sys.exit(0)
-else :
-  DWI=sys.argv[1]
-  OutputFolder = sys.argv[2]
-  if len(sys.argv) > 3 :
-    ArgTable = ParseArgs(3, ArgTable)
-    if len(sys.argv) > 4 :
-      ArgTable = ParseArgs(4, ArgTable)
-      if len(sys.argv) > 5 :
-        ArgTable = ParseArgs(5, ArgTable)
-        if len(sys.argv) > 6 :
-          ArgTable = ParseArgs(6, ArgTable)
 
-ComputeBrainmask = ArgTable[0]
-UseFullBrainMaskForTracto = ArgTable[1]
-DownsamplingFactor = ArgTable[2]
-TempFolder = ArgTable[3]
-if TempFolder == '' :
+if args : # if args list non empty # the 'args' list contains the non parsed args
+  print '> These args have not been parsed:',args
+  DisplayUsage()
+  sys.exit(1)
+
+DWI = ''
+OutputFolder = ''
+TempFolder = ''
+ComputeBrainmask = 1
+UseFullBrainMaskForTracto = 0
+DownsamplingFactor = -1
+
+for opt, arg in opts:
+  if opt in ("-h", "--help"):
+    DisplayUsage()
+    sys.exit(0)
+  elif opt in ("-i", "--inputDWI"):
+    DWI = arg
+  elif opt in ("-o", "--OutputFolder"):
+    OutputFolder = arg
+  elif opt in ("-t", "--TempFolder"):
+    TempFolder = arg
+  elif opt in ("-n", "--NoBrainmask"):
+    ComputeBrainmask = 0
+  elif opt in ("-f", "--UseFullBrainMaskForTracto"):
+    UseFullBrainMaskForTracto = 1
+  elif opt in ("-d", "--DownsampleImage"):
+    DownsamplingFactor = int(arg)
+
+if not DWI or not OutputFolder :
+  print 'Please give an input DWI image (.nhdr or .nrrd) and an output folder.'
+  DisplayUsage()
+  sys.exit(1)
+
+if not TempFolder :
   TempFolder = OutputFolder
 
 ############################################
@@ -103,7 +126,7 @@ unuCmd=['/tools/bin_linux64/unu']
 CheckTool(unuCmd + ['--help'])
 dtiestimCmd=['/tools/bin_linux64/dtiestim']
 CheckTool(dtiestimCmd + ['--help'])
-BrainMaskCmd=['/home/akaiser/MaskComputationWithThresholding-build/MaskComputationWithThresholding'] # ['/rodent/bin_linux64/toolsMarch2013/MaskComputationWithThresholding']
+BrainMaskCmd=['/NIRAL/work/akaiser/MaskComputationWithThresholding-build/MaskComputationWithThresholding'] # ['/rodent/bin_linux64/toolsMarch2013/MaskComputationWithThresholding']
 CheckTool(BrainMaskCmd + ['--help'])
 dtiprocessCmd=['/tools/bin_linux64/dtiprocess']
 CheckTool(dtiprocessCmd + ['--help'])
@@ -159,8 +182,8 @@ if DownsamplingFactor > 1 : # if 1 or below: no interest
       SizesTable = line.replace('\n','').split(' ')[1:5] # remove \n from the array before splitting
     if 'kinds' in line : # kinds: space space space list => needs to find where list is
       WhereIsList = line.replace('\n','').replace('vector','list').split(' ').index('list') - 1 # index of 'list' (or 'vector') in SizesTable (-1 because 'kinds:' is not in the table)
-  SizesTable[WhereIsList] = int(SizesTable[WhereIsList]) * int(DownsamplingFactor) # Multiply the nb of dirs so then we can divide the whole SizesTable
-  SizesTable = [ str(int(x)/int(DownsamplingFactor)) for x in SizesTable ] # divide whole list 
+  SizesTable[WhereIsList] = int(SizesTable[WhereIsList]) * DownsamplingFactor # Multiply the nb of dirs so then we can divide the whole SizesTable
+  SizesTable = [ str(int(x)/DownsamplingFactor) for x in SizesTable ] # divide whole list 
 
   # Downsample image
   ResampledDWI = TempFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_Downsampled' + str(DownsamplingFactor) + '.nhdr'
@@ -200,7 +223,10 @@ for MF in MFTable:
       elif 'data file' in line : # if not full path (not begin by '/'), need to give the full path to the date file(s)
         DataFile = line.split(' ')[2]
         if DataFile[0] != '/': # not full path
-          NewDataFile = os.path.abspath(os.path.dirname(UsedDWI) + '/' + DataFile)
+          UsedDWIPath = os.path.dirname(UsedDWI)
+          if UsedDWIPath == '' :
+            UsedDWIPath = '.'
+          NewDataFile = os.path.abspath(UsedDWIPath + '/' + DataFile)
         else: # full path: keep as is
           NewDataFile = DataFile
         MFDWIfile.write( line.replace(DataFile,NewDataFile) )

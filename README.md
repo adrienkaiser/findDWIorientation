@@ -4,11 +4,15 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 
 ##Usage
 ```
-Usage (in this exact order):  
-$ python ./findDWIOrientation.py DWIfile OutputFolder [<TempFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
-If no TempFolder given, it will be set to the OutputFolder.  
+USAGE : $ python FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]  
+-h --help                       : Display usage  
+-i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)  
+-o --OutputFolder <string>      : Output folder  
+-t --TempFolder <string>        : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)  
+-n --NoBrainmask                : If the image has not much noise, you do not need the brain mask  
+-f --UseFullBrainMaskForTracto  : Compute tractography in the full brain  
+-d --DownsampleImage <int>      : Downsample the input image to have faster processing  
 ```
-DWI can be either .nhdr or .nrrd  
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
 This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
 `--UseFullBrainMaskForTracto`: If the WM mask computed by OtsuThresholdSegmentation is bad, this option allows you to use the full brain mask computed with MaskComputationWithThresholding as seed for the tractography.  
