@@ -5,8 +5,8 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 ##Usage
 ```
 Usage (in this exact order):  
-$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
-If no OutputFolder given, it will be set to the TempFolder.  
+$ python ./findDWIOrientation.py DWIfile OutputFolder [<TempFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
+If no TempFolder given, it will be set to the OutputFolder.  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
 This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
@@ -61,6 +61,7 @@ $ python FindDWIOrientation.py
 > MF 11 = (0,0,-1) (-1,0,0) (0,1,0)     | 0.624954              0.719616                     0.89726  
 > The measurement frame MF 13 : (1,0,0) (0,-1,0) (0,0,1) (AvgFibLen=1.52304) will be used.  
 > Running: ['matlab', '-nodisplay', '-r', "addpath('/path/to/ScriptFolder'); PlotLengthValues('/path/to/OutputFolder')"]  
+> The MF corrected DWI has been written: OutputFolder/dwi_MFcorrected.nhdr  
 > Execution time = 699 s = 11 m 39 s  
 ```
 
@@ -68,28 +69,15 @@ $ python FindDWIOrientation.py
 
 ##Possible measurement frames (24)
 ```
-1 : (1,0,0) (0,1,0) (0,0,1)  
-2 : (1,0,0) (0,0,1) (0,1,0)  
-3 : (0,1,0) (1,0,0) (0,0,1)  
-4 : (0,1,0) (0,0,1) (1,0,0)  
-5 : (0,0,1) (1,0,0) (0,1,0)  
-6 : (0,0,1) (0,1,0) (1,0,0)  
-7 : (1,0,0) (0,1,0) (0,0,-1)  
-8 : (1,0,0) (0,0,1) (0,-1,0)  
-9 : (0,1,0) (1,0,0) (0,0,-1)  
-10: (0,1,0) (0,0,1) (-1,0,0)  
-11: (0,0,1) (1,0,0) (0,-1,0)  
-12: (0,0,1) (0,1,0) (-1,0,0)  
-13: (1,0,0) (0,-1,0) (0,0,1)  
-14: (1,0,0) (0,0,-1) (0,1,0)  
-15: (0,1,0) (-1,0,0) (0,0,1)  
-16: (0,1,0) (0,0,-1) (1,0,0)  
-17: (0,0,1) (-1,0,0) (0,1,0)  
-18: (0,0,1) (0,-1,0) (1,0,0)  
-19: (1,0,0) (0,-1,0) (0,0,-1)  
-20: (1,0,0) (0,0,-1) (0,-1,0)  
-21: (0,1,0) (-1,0,0) (0,0,-1)  
-22: (0,1,0) (0,0,-1) (-1,0,0)  
-23: (0,0,1) (-1,0,0) (0,-1,0)  
-24: (0,0,1) (0,-1,0) (-1,0,0)  
+1 : (1,0,0)   2 : (1,0,0)   3 : (0,1,0)    4 : (0,1,0)    5 : (0,0,1)    6 : (0,0,1)    7 : (1,0, 0)   8 : (1, 0,0)  
+    (0,1,0)       (0,0,1)       (1,0,0)        (0,0,1)        (1,0,0)        (0,1,0)        (0,1, 0)       (0, 0,1)  
+    (0,0,1)       (0,1,0)       (0,0,1)        (1,0,0)        (0,1,0)        (1,0,0)        (0,0,-1)       (0,-1,0)  
+  
+9 : (0,1, 0)  10: ( 0,1,0)  11: (0, 0,1)   12: ( 0,0,1)   13: (1, 0,0)   14: (1,0, 0)   15: ( 0,1,0)   16: (0,1, 0)  
+    (1,0, 0)      ( 0,0,1)      (1, 0,0)       ( 0,1,0)       (0,-1,0)       (0,0,-1)       (-1,0,0)       (0,0,-1)  
+    (0,0,-1)      (-1,0,0)      (0,-1,0)       (-1,0,0)       (0, 0,1)       (0,1, 0)       ( 0,0,1)       (1,0, 0)  
+  
+17: ( 0,0,1)  18: (0, 0,1)  19: (1, 0, 0)  20: (1, 0, 0)  21: ( 0,1, 0)  22: ( 0,1, 0)  23: ( 0, 0,1)  24: ( 0, 0,1)  
+    (-1,0,0)      (0,-1,0)      (0,-1, 0)      (0, 0,-1)      (-1,0, 0)      ( 0,0,-1)      (-1, 0,0)      ( 0,-1,0)  
+    ( 0,1,0)      (1, 0,0)      (0, 0,-1)      (0,-1, 0)      ( 0,0,-1)      (-1,0, 0)      ( 0,-1,0)      (-1, 0,0)  
 ```

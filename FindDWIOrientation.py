@@ -4,7 +4,7 @@ import os # .access .path .rename .remove .mkdir
 import sys # .exit .argv
 import subprocess # .call
 import time # .time()
-import shutil # .copyfile()
+#import shutil # .copyfile()
 
 # DWI
 # /NIRAL/work/akaiser/Networking/NFG/nfg_1.1.1/generated_collections/130325112527/DWI/dwi.nhdr  => !! --NoBrainmask
@@ -32,13 +32,13 @@ def ParseArgs (argIndex, ArgTable) : # ArgTable = ComputeBrainmask, UseFullBrain
 ArgTable = [1, 0, -1, ''] # ComputeBrainmask, UseFullBrainMaskForTracto, DownsamplingFactor, OutputFolder
 if len(sys.argv) < 3 : # sys.argv[0] = name of the script
   print '> Not enough arguments given!'
-  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]'
-  print '> If no OutputFolder given, it will be set to the TempFolder.'
+  print '> Usage (in this exact order): $ python ./findDWIOrientation.py DWIfile OutputFolder [<TempFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]'
+  print '> If no TempFolder given, it will be set to the OutputFolder.'
   print '> EXIT'
   sys.exit(0)
 else :
   DWI=sys.argv[1]
-  TempFolder = sys.argv[2]
+  OutputFolder = sys.argv[2]
   if len(sys.argv) > 3 :
     ArgTable = ParseArgs(3, ArgTable)
     if len(sys.argv) > 4 :
@@ -51,9 +51,9 @@ else :
 ComputeBrainmask = ArgTable[0]
 UseFullBrainMaskForTracto = ArgTable[1]
 DownsamplingFactor = ArgTable[2]
-OutputFolder = ArgTable[3]
-if OutputFolder == '' :
-  OutputFolder = TempFolder
+TempFolder = ArgTable[3]
+if TempFolder == '' :
+  TempFolder = OutputFolder
 
 ############################################
 #              Check variables             #
@@ -164,7 +164,9 @@ if DownsamplingFactor > 1 : # if 1 or below: no interest
   TempFile.close()
   os.remove(ResampledDWI)
   os.rename(TempNhdr,ResampledDWI)
-  DWI = ResampledDWI
+  UsedDWI = ResampledDWI
+else :
+  UsedDWI = DWI
 
 ## Compute Avg Fiber Length for all possible MFs
 time1=time.time()
@@ -179,13 +181,13 @@ for MF in MFTable:
   MFDWI = TempFolder + '/MF' + str(MFindex) + '_dwi.nhdr'
   if not os.path.isfile(MFDWI): # NO auto overwrite => if willing to overwrite, rm files
     MFDWIfile = open(MFDWI,'w')
-    for line in open(DWI): # read all lines and replace line containing 'measurement frame' by the new MF
+    for line in open(UsedDWI): # read all lines and replace line containing 'measurement frame' by the new MF
       if 'measurement frame' in line :
         MFDWIfile.write('measurement frame: ' + MF + '\n')
       elif 'data file' in line : # if not full path (not begin by '/'), need to give the full path to the date file(s)
         DataFile = line.split(' ')[2]
         if DataFile[0] != '/': # not full path
-          NewDataFile = os.path.abspath(os.path.dirname(DWI) + '/' + DataFile)
+          NewDataFile = os.path.abspath(os.path.dirname(UsedDWI) + '/' + DataFile)
         else: # full path: keep as is
           NewDataFile = DataFile
         MFDWIfile.write( line.replace(DataFile,NewDataFile) )
@@ -289,13 +291,25 @@ if os.path.isfile(ScriptFolder + '/PlotLengthValues.m') : # If matlab script fou
     ExecuteCommand(PlotLenValuesCmdTable)
 
 ############################################
-#    Write final images to output folder   #
+#      Write final DWI to output folder    #
 ############################################
-# Copy corrected DWI header and DTI to output folder
+# Create corrected DWI header for output folder
 CorrectedDWI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nhdr' # os.path.split() gives the name of the file without path
-shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dwi.nhdr', CorrectedDWI)
-CorrectedDTI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected_dti.nrrd' # os.path.split() gives the name of the file without path
-shutil.copyfile(TempFolder + '/MF' + str(MFTable.index(AvgFibLenTupleTable[0][0])+1) + '_dti.nrrd', CorrectedDTI)
+CorrectedDWIfile = open(CorrectedDWI,'w')
+for line in open(DWI): # read all lines and replace line containing 'measurement frame' by the right MF
+  if 'measurement frame' in line :
+    CorrectedDWIfile.write('measurement frame: ' + AvgFibLenTupleTable[0][0] + '\n')
+  elif 'data file' in line : # if not full path (not begin by '/'), need to give the full path to the date file(s)
+    DataFile = line.split(' ')[2]
+    if DataFile[0] != '/': # not full path
+      NewDataFile = os.path.abspath(os.path.dirname(DWI) + '/' + DataFile)
+    else: # full path: keep as is
+      NewDataFile = DataFile
+    CorrectedDWIfile.write( line.replace(DataFile,NewDataFile) )
+  else :
+    CorrectedDWIfile.write(line)
+CorrectedDWIfile.close()
+print '> The MF corrected DWI has been written:',CorrectedDWI
 
 ## Display execution time
 time2=time.time()
