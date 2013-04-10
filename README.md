@@ -1,6 +1,7 @@
 #Find DWI Orientation
 Python script for linux:
-Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography
+Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography.  
+The only file that will be created in the output folder is the final MF corrected nrrd file.  
 
 ##Usage
 ```
@@ -66,7 +67,8 @@ $ python FindDWIOrientation.py
 > MF 11 = (0,0,-1) (-1,0,0) (0,1,0)     | 0.624954              0.719616                     0.89726  
 > The measurement frame MF 13 : (1,0,0) (0,-1,0) (0,0,1) (AvgFibLen=1.52304) will be used.  
 > Running: ['matlab', '-nodisplay', '-r', "addpath('/path/to/ScriptFolder'); PlotLengthValues('/path/to/OutputFolder')"]  
-> The MF corrected DWI has been written: OutputFolder/dwi_MFcorrected.nhdr  
+> The MF corrected DWI header has been written: TempFolder/dwi_MFcorrected.nhdr  
+> The MF corrected nrrd DWI has been written: OutputFolder/dwi_MFcorrected.nrrd  
 > Execution time = 699 s = 11 m 39 s  
 ```
 

@@ -162,7 +162,6 @@ for XYZ in [ (X,Y,Z) for X in [1] for Y in doubles for Z in doubles ]: # X is on
       MFTable.append(MF)
 
 ## Convert input DWI to nhdr if nrrd
-ConvertDWI = 0 # variable to convert back to nrrd when done
 DWIPathParsed = os.path.split(DWI)[1].split('.')
 if DWIPathParsed[ len(DWIPathParsed)-1 ] == 'nrrd' : # get last extension
   ConvertedDWI = TempFolder + '/' + DWIPathParsed[0] + '.nhdr'
@@ -170,7 +169,6 @@ if DWIPathParsed[ len(DWIPathParsed)-1 ] == 'nrrd' : # get last extension
   if not os.path.isfile(ConvertedDWI): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ConvertDWICmdTable)
   DWI = ConvertedDWI
-  ConvertDWI = 1
 
 ## Downsample image if asked
 if DownsamplingFactor > 1 : # if 1 or below: no interest
@@ -330,8 +328,8 @@ if os.path.isfile(ScriptFolder + '/PlotLengthValues.m') : # If matlab script fou
 ############################################
 #      Write final DWI to output folder    #
 ############################################
-# Create corrected DWI header for output folder
-CorrectedDWI = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nhdr' # os.path.split() gives the name of the file without path
+# Create corrected DWI header to then create nrrd for output folder
+CorrectedDWI = TempFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nhdr' # os.path.split() gives the name of the file without path
 CorrectedDWIfile = open(CorrectedDWI,'w')
 for line in open(DWI): # read all lines and replace line containing 'measurement frame' by the right MF
   if 'measurement frame' in line :
@@ -348,13 +346,12 @@ for line in open(DWI): # read all lines and replace line containing 'measurement
 CorrectedDWIfile.close()
 print '> The MF corrected DWI header has been written:',CorrectedDWI
 
-# Convert nhdr back to nrrd if was a nrrd originally
-if ConvertDWI :
-  CorrectedDWInrrd = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nrrd'
-  ConvertDWInrrdCmdTable = ResampleVolume2Cmd + [CorrectedDWI, CorrectedDWInrrd]
-  if not os.path.isfile(CorrectedDWInrrd): # NO auto overwrite => if willing to overwrite, rm files
-    ExecuteCommand(ConvertDWInrrdCmdTable)
-  print '> The MF corrected nrrd DWI has been written:',CorrectedDWInrrd
+# Convert nhdr to nrrd and put it in output folder
+CorrectedDWInrrd = OutputFolder + '/' + os.path.split(DWI)[1].split('.')[0] + '_MFcorrected.nrrd'
+ConvertDWInrrdCmdTable = ResampleVolume2Cmd + [CorrectedDWI, CorrectedDWInrrd]
+if not os.path.isfile(CorrectedDWInrrd): # NO auto overwrite => if willing to overwrite, rm files
+  ExecuteCommand(ConvertDWInrrdCmdTable)
+print '> The MF corrected nrrd DWI has been written:',CorrectedDWInrrd
 
 ## Display execution time
 time2=time.time()
