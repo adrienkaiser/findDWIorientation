@@ -20,7 +20,7 @@ import getopt # .getopt() : to parse the cmd line args
 #             Args & Usage                 #
 ############################################
 def DisplayUsage () :
-  print '> USAGE : $ python FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
+  print '> USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
   print '> -h --help                       : Display usage'
   print '> -i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)'
   print '> -o --OutputFolder <string>      : Output folder'
@@ -89,14 +89,12 @@ def CheckFolder (folder):
       sys.exit(1)
   else:
     print '> The given output folder does not exist, it will be created:',folder
-    ParentFolder = os.path.dirname(folder)
-    if ParentFolder == '' :
-      ParentFolder = '.'
-    if not os.access(ParentFolder, os.W_OK):
-      print '> The parent of the given output folder is not writable:',os.path.dirname(folder)
+    try:
+      os.makedirs(folder) # recursive directory creation function
+    except: # exception if leaf directory already exists or cannot be created
+      print '> Error while creating the given output folder (check the write permissions on the parent folders):',folder
       print '> ABORT'
       sys.exit(1)
-    os.mkdir(folder)
 
 CheckFolder(TempFolder)
 CheckFolder(OutputFolder)
@@ -272,9 +270,9 @@ for MF in MFTable:
   else : # ComputeBrainmask and UseFullBrainMaskForTracto
     Mask = BrainMask
 
-  # Compute Tractography
+  # Compute Tractography #  
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
-  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask] # if 'Mask' contains several labels: By default, the seeding region is the label 1
+  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask, '--seedspacing', '1', '--clthreshold', '0.1', '--stoppingvalue', '0.05', '--stoppingcurvature', '0.5', '--integrationsteplength', '1'] # if 'Mask' contains several labels: By default, the seeding region is the label 1
   if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeTractsCmdTable)
 

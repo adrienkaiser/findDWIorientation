@@ -4,7 +4,7 @@ Find the correct orientation of a DWI by testing all possible measurement frames
 
 ##Usage
 ```
-USAGE : $ python FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]  
+USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]  
 -h --help                       : Display usage  
 -i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)  
 -o --OutputFolder <string>      : Output folder  
