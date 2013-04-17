@@ -285,7 +285,7 @@ for MF in MFTable:
   FiberStatsOutputFile = TempFolder + '/MF' + str(MFindex) + '_fiberstats.txt'
   ComputeAvgFibLenCmdTable = fiberstatsCmd + ['--fiber_file', Tracts]
   if not os.path.isfile(FiberStatsOutputFile): # NO auto overwrite => if willing to overwrite, rm files
-    print '> Running:',ComputeAvgFibLenCmdTable
+    print '> Running:',' '.join(ComputeAvgFibLenCmdTable)
     if subprocess.call( ComputeAvgFibLenCmdTable, stdout=open(FiberStatsOutputFile, 'w') , stderr=open(os.devnull, 'w') ) !=0 :
       print '> Error executing command'
       print '> ABORT'
