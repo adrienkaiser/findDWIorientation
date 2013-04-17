@@ -256,6 +256,13 @@ for MF in MFTable:
     AplpyMasktoFACmdTable = ImageMathCmd + [FA, '-outfile', FAmasked, '-mul', BrainMask, '-type', 'float']
     if not os.path.isfile(FAmasked): # NO auto overwrite => if willing to overwrite, rm files
       ExecuteCommand(AplpyMasktoFACmdTable)
+    # Apply mask to DTI to avoid tracking outside of the brain
+    (DTIfilename, extension) = os.path.splitext(DTI)
+    DTImasked = DTIfilename + '_masked.nrrd'
+    ApplyMasktoDTICmdTable = ImageMathCmd + [DTI, '-outfile', DTImasked, '-mask', BrainMask]
+    if not os.path.isfile(DTImasked): # NO auto overwrite => if willing to overwrite, rm files
+      ExecuteCommand(ApplyMasktoDTICmdTable)
+    DTI = DTImasked
   else :
     FAmasked = FA
 
