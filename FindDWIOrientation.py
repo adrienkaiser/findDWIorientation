@@ -21,17 +21,21 @@ import getopt # .getopt() : to parse the cmd line args
 ############################################
 def DisplayUsage () :
   print '> USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
-  print '> -h --help                       : Display usage'
-  print '> -i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)'
-  print '> -o --OutputFolder <string>      : Output folder'
-  print '> -t --TempFolder <string>        : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)'
-  print '> -n --NoBrainmask                : If the image has not much noise, you do not need the brain mask'
-  print '> -f --UseFullBrainMaskForTracto  : Compute tractography in the full brain'
-  print '> -d --DownsampleImage <int>      : Downsample the input image to have faster processing'
+  print '> -h --help                          : Display usage'
+  print '> -i --inputDWI <string>             : Input DWI image (.nhdr or .nrrd)'
+  print '> -o --OutputFolder <string>         : Output folder'
+  print '> -t --TempFolder <string>           : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)'
+  print '> -n --NoBrainmask                   : If the image has not much noise, you do not need the brain mask'
+  print '> -f --UseFullBrainMaskForTracto     : Compute tractography in the full brain'
+  print '> -d --DownsampleImage <int>         : Downsample the input image to have faster processing'
+  print '> -s --FAStartValue <float>          : Start value for tractography'
+  print '> -p --FAStopValue <float>           : Stopping value for tractography'
+  print '> -m --MinimumFiberLength <float>    : Minimum fiber length for tractography'
+  print '> -l --IntegrationStepLength <float> : Integration step length for tractography'
 
 # parse args into lists 'opts' and 'args'
 try:
-  opts, args = getopt.getopt(sys.argv[1:],'hi:o:t:nfd:',['help','inputDWI=','OutputFolder=','TempFolder=','NoBrainmask','UseFullBrainMaskForTracto','DownsampleImage='])
+  opts, args = getopt.getopt(sys.argv[1:],'hi:o:t:nfd:s:p:m:l:',['help','inputDWI=','OutputFolder=','TempFolder=','NoBrainmask','UseFullBrainMaskForTracto','DownsampleImage=','FAStartValue=','FAStopValue=','MinimumFiberLength=','IntegrationStepLength'])
 except getopt.GetoptError:
   print '> Error parsing aruments'
   DisplayUsage()
@@ -52,6 +56,10 @@ TempFolder = ''
 ComputeBrainmask = 1
 UseFullBrainMaskForTracto = 0
 DownsamplingFactor = -1
+FAStartValue = .3
+FAStopValue = .25
+MinimumFiberLength = 20
+IntegrationStepLength = .5
 
 for opt, arg in opts:
   if opt in ("-h", "--help"):
@@ -69,6 +77,20 @@ for opt, arg in opts:
     UseFullBrainMaskForTracto = 1
   elif opt in ("-d", "--DownsampleImage"):
     DownsamplingFactor = int(arg)
+  elif opt in ("-s", "--FAStartValue"):
+    FAStartValue = float(arg)
+    if (FAStartValue < 0) or (FAStartValue > 1.0):
+      print 'Start value for tractography has to be between 0 and 1'
+      sys.exit(1)
+  elif opt in ("-p", "--FAStopValue"):
+    FAStopValue = float(arg)
+    if (FAStopValue < 0) or (FAStopValue > 1.0):
+      print 'Stop value for tractography has to be between 0 and 1'
+      sys.exit(1)
+  elif opt in ("-m", "--MinimumFiberLength"):
+    MinimumFiberLength = float(arg)
+  elif opt in ("-l", "--IntegrationStepLength"):
+    IntegrationStepLength = float(arg)
 
 if not DWI or not OutputFolder :
   print 'Please give an input DWI image (.nhdr or .nrrd) and an output folder.'
@@ -277,7 +299,7 @@ for MF in MFTable:
 
   # Compute Tractography #  
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
-  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask, '--seedspacing', '.5', '--clthreshold', '0.3', '--stoppingvalue', '0.25', '--stoppingcurvature', '0.7', '--integrationsteplength', '.5'] # if 'Mask' contains several labels: By default, the seeding region is the label 1
+  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask, '--seedspacing', '.5', '--clthreshold', str(FAStartValue), '--stoppingvalue', str(FAStopValue), '--stoppingcurvature', '0.7', '--integrationsteplength', str(IntegrationStepLength),'--minimumlength',str(MinimumFiberLength)] # if 'Mask' contains several labels: By default, the seeding region is the label 1
   if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeTractsCmdTable)
 
