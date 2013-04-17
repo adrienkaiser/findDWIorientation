@@ -277,7 +277,7 @@ for MF in MFTable:
 
   # Compute Tractography #  
   Tracts = TempFolder + '/MF' + str(MFindex) + '_tracts.vtk'
-  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask, '--seedspacing', '1', '--clthreshold', '0.1', '--stoppingvalue', '0.05', '--stoppingcurvature', '0.5', '--integrationsteplength', '1'] # if 'Mask' contains several labels: By default, the seeding region is the label 1
+  ComputeTractsCmdTable = tractoCmd + [DTI, Tracts, '--inputroi', Mask, '--seedspacing', '.5', '--clthreshold', '0.3', '--stoppingvalue', '0.25', '--stoppingcurvature', '0.7', '--integrationsteplength', '.5'] # if 'Mask' contains several labels: By default, the seeding region is the label 1
   if not os.path.isfile(Tracts): # NO auto overwrite => if willing to overwrite, rm files
     ExecuteCommand(ComputeTractsCmdTable)
 
