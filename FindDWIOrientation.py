@@ -145,7 +145,7 @@ CheckTool(MatlabCmd + ['-e']) # -e = env variables # -help returns 1
 
 ## Function to execute an external command with NO output+ test exit code
 def ExecuteCommand (Command):
-  print '> Running:',Command
+  print '> Running:',' '.join(Command)
   if subprocess.call( Command, stdout=open(os.devnull, 'w') , stderr=open(os.devnull, 'w') ) !=0 :
     print '> Error executing command'
     print '> ABORT'
