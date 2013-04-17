@@ -1,12 +1,18 @@
 #Find DWI Orientation
 Python script for linux:
-Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography
+Find the correct orientation of a DWI by testing all possible measurement frames and finding the longest average length of tracts from the full brain tractography.  
+The only file that will be created in the output folder is the final MF corrected nrrd file.  
 
 ##Usage
 ```
-Usage (in this exact order):  
-$ python ./findDWIOrientation.py DWIfile TempFolder [<OutputFolder>] [--NoBrainmask] [--UseFullBrainMaskForTracto] [--DownsampleImage=factor] [> <LogFile>]  
-If no OutputFolder given, it will be set to the TempFolder.  
+USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]  
+-h --help                       : Display usage  
+-i --inputDWI <string>          : Input DWI image (.nhdr or .nrrd)  
+-o --OutputFolder <string>      : Output folder  
+-t --TempFolder <string>        : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)  
+-n --NoBrainmask                : If the image has not much noise, you do not need the brain mask  
+-f --UseFullBrainMaskForTracto  : Compute tractography in the full brain  
+-d --DownsampleImage <int>      : Downsample the input image to have faster processing  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
 This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
@@ -38,21 +44,21 @@ $ python FindDWIOrientation.py
 > Running: ['MaskComputationWithThresholding', 'MF1_idwi.nrrd', '--output', 'brainmask.nrrd', '--autoThreshold', '-e', '0']  
 > Running: ['dtiprocess', '--dti_image', 'MF1_dti.nrrd', '--fa_output', 'fa.nrrd', '--scalar_float']  
 > Running: ['ImageMath', 'fa.nrrd', '-outfile', 'famasked.nrrd', '-mul', 'brainmask.nrrd', '-type', 'float']  
-> Running: ['Slicer', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'OtsuThresholdSegmentation', 'fa.nrrd', 'mask.nrrd', '--minimumObjectSize', '10', '--brightObjects']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF1_dti.nrrd', 'MF1_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF1_tracts.vtk']  
 > Testing MF 2 : (1,0,0) (0,0,1) (0,1,0)  
 > Running: ['dtiestim', '--dwi_image', 'MF2_dwi.nhdr', '--tensor_output', '/MF2_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF2_dti.nrrd', 'MF2_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF2_dti.nrrd', 'MF2_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF2_tracts.vtk']  
 > Testing MF 3 : (0,1,0) (1,0,0) (0,0,1)  
 > Running: ['dtiestim', '--dwi_image', 'MF3_dwi.nhdr', '--tensor_output', '/MF3_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF3_dti.nrrd', 'MF3_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF3_dti.nrrd', 'MF3_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF3_tracts.vtk']  
 ...  
 > Testing MF 24 : (0,0,-1) (0,-1,0) (-1,0,0)  
 > Running: ['dtiestim', '--dwi_image', 'MF24_dwi.nhdr', '--tensor_output', '/MF24_dti.nrrd', '-m', 'wls']  
-> Running: ['Slicer', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
+> Running: ['Slicer', '--launcher-no-splash', '--launch', 'TractographyLabelMapSeeding', 'MF24_dti.nrrd', 'MF24_tracts.vtk', '--inputroi', 'mask.nrrd']  
 > Running: ['fiberstats', '--fiber_file', 'MF24_tracts.vtk']  
 > Results:                              | Average Fiber Length  75 percentile Fiber Length   Average 75 percentile Fiber Length  
 > MF 13 = (1,0,0) (0,-1,0) (0,0,1)      | 1.52304               1.98928                      2.17827  
@@ -61,6 +67,8 @@ $ python FindDWIOrientation.py
 > MF 11 = (0,0,-1) (-1,0,0) (0,1,0)     | 0.624954              0.719616                     0.89726  
 > The measurement frame MF 13 : (1,0,0) (0,-1,0) (0,0,1) (AvgFibLen=1.52304) will be used.  
 > Running: ['matlab', '-nodisplay', '-r', "addpath('/path/to/ScriptFolder'); PlotLengthValues('/path/to/OutputFolder')"]  
+> The MF corrected DWI header has been written: TempFolder/dwi_MFcorrected.nhdr  
+> The MF corrected nrrd DWI has been written: OutputFolder/dwi_MFcorrected.nrrd  
 > Execution time = 699 s = 11 m 39 s  
 ```
 
@@ -68,28 +76,15 @@ $ python FindDWIOrientation.py
 
 ##Possible measurement frames (24)
 ```
-1 : (1,0,0) (0,1,0) (0,0,1)  
-2 : (1,0,0) (0,0,1) (0,1,0)  
-3 : (0,1,0) (1,0,0) (0,0,1)  
-4 : (0,1,0) (0,0,1) (1,0,0)  
-5 : (0,0,1) (1,0,0) (0,1,0)  
-6 : (0,0,1) (0,1,0) (1,0,0)  
-7 : (1,0,0) (0,1,0) (0,0,-1)  
-8 : (1,0,0) (0,0,1) (0,-1,0)  
-9 : (0,1,0) (1,0,0) (0,0,-1)  
-10: (0,1,0) (0,0,1) (-1,0,0)  
-11: (0,0,1) (1,0,0) (0,-1,0)  
-12: (0,0,1) (0,1,0) (-1,0,0)  
-13: (1,0,0) (0,-1,0) (0,0,1)  
-14: (1,0,0) (0,0,-1) (0,1,0)  
-15: (0,1,0) (-1,0,0) (0,0,1)  
-16: (0,1,0) (0,0,-1) (1,0,0)  
-17: (0,0,1) (-1,0,0) (0,1,0)  
-18: (0,0,1) (0,-1,0) (1,0,0)  
-19: (1,0,0) (0,-1,0) (0,0,-1)  
-20: (1,0,0) (0,0,-1) (0,-1,0)  
-21: (0,1,0) (-1,0,0) (0,0,-1)  
-22: (0,1,0) (0,0,-1) (-1,0,0)  
-23: (0,0,1) (-1,0,0) (0,-1,0)  
-24: (0,0,1) (0,-1,0) (-1,0,0)  
+1 : (1,0,0)   2 : (1,0,0)   3 : (0,1,0)    4 : (0,1,0)    5 : (0,0,1)    6 : (0,0,1)    7 : (1,0, 0)   8 : (1, 0,0)  
+    (0,1,0)       (0,0,1)       (1,0,0)        (0,0,1)        (1,0,0)        (0,1,0)        (0,1, 0)       (0, 0,1)  
+    (0,0,1)       (0,1,0)       (0,0,1)        (1,0,0)        (0,1,0)        (1,0,0)        (0,0,-1)       (0,-1,0)  
+  
+9 : (0,1, 0)  10: ( 0,1,0)  11: (0, 0,1)   12: ( 0,0,1)   13: (1, 0,0)   14: (1,0, 0)   15: ( 0,1,0)   16: (0,1, 0)  
+    (1,0, 0)      ( 0,0,1)      (1, 0,0)       ( 0,1,0)       (0,-1,0)       (0,0,-1)       (-1,0,0)       (0,0,-1)  
+    (0,0,-1)      (-1,0,0)      (0,-1,0)       (-1,0,0)       (0, 0,1)       (0,1, 0)       ( 0,0,1)       (1,0, 0)  
+  
+17: ( 0,0,1)  18: (0, 0,1)  19: (1, 0, 0)  20: (1, 0, 0)  21: ( 0,1, 0)  22: ( 0,1, 0)  23: ( 0, 0,1)  24: ( 0, 0,1)  
+    (-1,0,0)      (0,-1,0)      (0,-1, 0)      (0, 0,-1)      (-1,0, 0)      ( 0,0,-1)      (-1, 0,0)      ( 0,-1,0)  
+    ( 0,1,0)      (1, 0,0)      (0, 0,-1)      (0,-1, 0)      ( 0,0,-1)      (-1,0, 0)      ( 0,-1,0)      (-1, 0,0)  
 ```
