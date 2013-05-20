@@ -17,21 +17,44 @@ import getopt # .getopt() : to parse the cmd line args
 # /NIRAL/work/akaiser/MF_FAS_Sulik2
 
 ############################################
+#       Define colors for display          #
+############################################
+## From http://nezzen.net/2008/06/23/colored-text-in-python-using-ansi-escape-sequences
+## => Using ANSI Escape Sequences 0or1forbold;color
+## colors: http://www.siafoo.net/snippet/88
+colorCodes = {
+  'black':  '30',
+  'blue':   '34',
+  'green':  '32',
+  'cyan':   '36',
+  'red':    '31',
+  'purple': '35',
+  'yellow': '33',
+  'normal': '0'
+}
+
+NoColor=0
+def colorize(text, color, bold): # bold = '0' or '1'
+  if NoColor :
+    return text
+  else :
+    return '\033[' + bold + ';' + colorCodes[color] + 'm' + text + '\033[0m'
+
+#for color in colorCodes.keys(): print colorize(color, color, '0') # To see the available colors
+
+############################################
 #             Args & Usage                 #
 ############################################
 def DisplayUsage () :
-  print '> USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
-  print '> -h --help                          : Display usage'
-  print '> -i --inputDWI <string>             : Input DWI image (.nhdr or .nrrd)'
-  print '> -o --OutputFolder <string>         : Output folder'
-  print '> -t --TempFolder <string>           : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)'
-  print '> -n --NoBrainmask                   : If the image has not much noise, you do not need the brain mask'
-  print '> -f --UseFullBrainMaskForTracto     : Compute tractography in the full brain'
-  print '> -d --DownsampleImage <int>         : Downsample the input image to have faster processing'
-  print '> -s --FAStartValue <float>          : Start value for tractography'
-  print '> -p --FAStopValue <float>           : Stopping value for tractography'
-  print '> -m --MinimumFiberLength <float>    : Minimum fiber length for tractography'
-  print '> -l --IntegrationStepLength <float> : Integration step length for tractography'
+  print '> ' + colorize('USAGE:','blue','1')   + ' $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]'
+  print '> ' + colorize('-h --help', 'green','0') + '                       : Display usage'
+  print '> ' + colorize('-i --inputDWI <string>',   'red','0') + '          : Input DWI image (.nhdr or .nrrd)'
+  print '> ' + colorize('-o --OutputFolder <string>',   'red','0') + '      : Output folder'
+  print '> ' + colorize('-t --TempFolder <string>',   'red','0') + '        : Folder for temporary files (if no TempFolder given, it will be set to the OutputFolder)'
+  print '> ' + colorize('-n --NoBrainmask','purple','0') + '                : If the image has not much noise, you do not need the brain mask'
+  print '> ' + colorize('-f --UseFullBrainMaskForTracto','purple','0') + '  : Compute tractography in the full brain'
+  print '> ' + colorize('-d --DownsampleImage <int> ','purple','0') + '     : Downsample the input image to have faster processing'
+  print '> ' + colorize('-c --NoColor','purple','0') + '                    : Not coloring output'
 
 # parse args into lists 'opts' and 'args'
 try:
@@ -91,6 +114,8 @@ for opt, arg in opts:
     MinimumFiberLength = float(arg)
   elif opt in ("-l", "--IntegrationStepLength"):
     IntegrationStepLength = float(arg)
+  elif opt in ("-c", "--NoColor"):
+    NoColor = 1
 
 if not DWI or not OutputFolder :
   print 'Please give an input DWI image (.nhdr or .nrrd) and an output folder.'

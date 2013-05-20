@@ -13,6 +13,7 @@ USAGE : $ FindDWIOrientation.py -i <DWI> -o <OutputFolder> [Options]
 -n --NoBrainmask                : If the image has not much noise, you do not need the brain mask  
 -f --UseFullBrainMaskForTracto  : Compute tractography in the full brain  
 -d --DownsampleImage <int>      : Downsample the input image to have faster processing  
+-c --NoColor <bool>             : Not coloring output  
 ```
 `--NoBrainmask`: A brainmask will be computed (step 3) and applied (step 5) to remove noise outside the brain.  
 This brainmask computation can fail for some images, so if your image does not have a lot of noise you can use this option.  
