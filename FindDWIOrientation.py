@@ -136,7 +136,7 @@ def CheckTool(TestCmd):
   except:
     ExceptionCaught=1
   if ExceptionCaught or ExitCode!=0 :
-    print '> Error in:',TestCmd
+    print '> Error in:',' '.join(TestCmd)
     print '> ABORT'
     sys.exit(1)
 
@@ -248,6 +248,8 @@ for MF in MFTable:
         else: # full path: keep as is
           NewDataFile = DataFile
         MFDWIfile.write( line.replace(DataFile,NewDataFile) )
+      elif 'NRRD000' in line : # version < NRRD0005 do not know measurement frame: http://teem.sourceforge.net/nrrd/format.html#general.1
+        MFDWIfile.write('NRRD0005\n')
       else :
         MFDWIfile.write(line)
     MFDWIfile.close()
